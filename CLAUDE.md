@@ -38,7 +38,7 @@ Read these before writing code:
 ## Layout
 
 ```
-src/lib/schema.ts            zod schema + types shared by server and client
+src/lib/schema/              zod schema + types shared by server and client (one module per concept, re-exported from index.ts)
 src/lib/extraction/          pure TS, no Next.js imports, fully unit-testable
   pdf.ts                     PDF bytes → pages (text runs with x, y, w, h); per-page error isolation
   rows.ts                    group runs into visual rows; build pageText and sourceText
@@ -48,7 +48,7 @@ src/lib/extraction/          pure TS, no Next.js imports, fully unit-testable
   section.ts                 classify page role from its subtitle (delivery, summary, returns…)
   notes.ts                   non-table text: printed totals, "<n> <count-noun>" mentions
   validate.ts                cross-checks: line arithmetic, total vs lines, conflicting mentions
-  messages.ts                RefusalCode → plain-English userMessage + suggestedAction
+  messages/                  RefusalCode → plain-English userMessage + suggestedAction (builders grouped by scope; describeRefusal in index.ts)
   pipeline.ts                orchestrates; try/catch per page; computes status
 src/app/api/extract/route.ts HTTP layer: size/type checks, status codes, requestId
 src/app/page.tsx             Part B UI (client component, explicit state machine)
@@ -77,7 +77,8 @@ Before every commit: `npm run typecheck && npm test` must pass.
 - IDs are stable and page-scoped: line `p{page}-l{rowIndex}`, refusal `r-{code}-p{page}-…`. Item numbers restart on every page in multi-page files.
 - User-facing text (`userMessage`, `suggestedAction`) is written for a tradie, not a developer: say what happened, where (page), what it means for their quote, and what to do next. No codes or stack traces in user text; codes go in `technicalDetail`.
 - Tests are about the refusal rules first. Add a test with every new refusal rule.
-- Commits: small, Conventional Commits (`feat:`, `fix:`, `test:`, `docs:`, `chore:`), one logical change each. Use the messages in `docs/PLAN.md`. Commit history is part of the review, so never squash.
+- One responsibility per file. Prefer a folder of small focused modules behind an `index.ts` over one large file. Comments only where a rule is non-obvious, one short line.
+- Commits: small, Conventional Commits with the Linear ticket as scope (`feat(IQE-2): …`), subject line only, one logical change each. Use the messages in `docs/PLAN.md`. Commit history is part of the review, so never squash.
 - When you make a non-obvious decision or find a limitation, append it to `docs/DECISIONS.md` (short: decision, why, cost).
 
 ## Don'ts

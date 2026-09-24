@@ -78,7 +78,7 @@ Before every commit: `npm run typecheck && npm test` must pass.
 - User-facing text (`userMessage`, `suggestedAction`) is written for a tradie, not a developer: say what happened, where (page), what it means for their quote, and what to do next. No codes or stack traces in user text; codes go in `technicalDetail`.
 - Tests are about the refusal rules first. Add a test with every new refusal rule.
 - One responsibility per file. Prefer a folder of small focused modules behind an `index.ts` over one large file. Comments only where a rule is non-obvious, one short line.
-- Commits: small, Conventional Commits with the Linear ticket as scope (`feat(IQE-2): …`), subject line only, one logical change each. Use the messages in `docs/PLAN.md`. Commit history is part of the review, so never squash.
+- Commits: small, one line `IQE-<n> <Capitalised subject>` (e.g. `IQE-2 Result schema and plain-language refusal messages`), no body, one logical change each. Subjects follow `docs/PLAN.md`. Commit history is part of the review, so never squash.
 - When you make a non-obvious decision or find a limitation, append it to `docs/DECISIONS.md` (short: decision, why, cost).
 
 ## Don'ts

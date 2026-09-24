@@ -30,40 +30,25 @@ npm run extract:fixtures   # writes out/<fixture>.json for every sample PDF
 curl -F "file=@fixtures/pdfs/KBS-10262.pdf" https://insta-quote-extract.vercel.app/api/extract
 ```
 
-Here's a trimmed version of the real response for that file:
+It returns something like this (trimmed):
 
 ```json
 {
   "status": "needs_review",
   "lineItems": [
-    {
-      "id": "p1-l1",
-      "section": "packing_list",
-      "quantity": {
-        "value": 96,
-        "raw": "96",
-        "evidence": { "page": 1, "sourceText": "1 10mm GIB Standard board 2400x1200 96 sheet $24.90 $2,390.40" }
-      }
-    }
+    { "id": "p1-l1", "quantity": { "value": 96, "raw": "96",
+        "evidence": { "page": 1, "sourceText": "1 10mm GIB Standard board 2400x1200 96 sheet $24.90 $2,390.40" } } }
   ],
   "refusals": [
-    {
-      "code": "CONFLICTING_VALUES",
-      "scope": "document",
-      "candidates": [
-        { "value": 14, "raw": "14 pallets", "evidence": { "page": 1, "sourceText": "Summary: 14 pallets loaded at depot, all strapped and wrapped." } },
-        { "value": 16, "raw": "16 pallets", "evidence": { "page": 1, "sourceText": "Driver notes: 16 pallets unloaded at site, all accounted for on the day." } }
-      ],
-      "userMessage": "The number of pallets doesn't match: the document says \"14 pallets\" and \"16 pallets\" in different places. We haven't picked one.",
-      "suggestedAction": "Check with the supplier or driver which number of pallets is correct."
-    }
+    { "code": "CONFLICTING_VALUES", "scope": "document",
+      "candidates": [{ "raw": "14 pallets", "evidence": { "page": 1, "sourceText": "Summary: 14 pallets loaded at depot, …" } },
+                     { "raw": "16 pallets", "evidence": { "page": 1, "sourceText": "Driver notes: 16 pallets unloaded at site, …" } }],
+      "userMessage": "The number of pallets doesn't match: the document says \"14 pallets\" and \"16 pallets\" in different places. We haven't picked one." }
   ]
 }
 ```
 
-Every value it extracts has the shape `{ value, raw, evidence: { page, sourceText, bbox } }`. `raw` is exactly what was printed (`"$68.00 /bag"`, not `68`), it's always a substring of `sourceText`, and `sourceText` is always one line of that page's text. That's what makes every number traceable.
-
-A refusal is a normal result, not an error, so a document is a 200 even when nothing on it could be read:
+Every value keeps `raw` exactly as printed, and `raw` is always inside `sourceText`, a line of that page. A refusal isn't an error, so a document is a 200 even when nothing on it could be read:
 
 | Case | Status | Body |
 |---|---|---|
@@ -73,7 +58,7 @@ A refusal is a normal result, not an error, so a document is a 200 even when not
 | Not a PDF (by magic bytes), encrypted, 0 pages | 422 | `{ refusal, requestId }` |
 | Real failure | 500 | honest message + `requestId`, no stack |
 
-Every response carries an `x-request-id` header, and the server writes one JSON log line per request with the status, page count and refusal codes. The browser checks every response against the same zod schema the server uses, so a malformed response can't slip through as a result.
+Every response has an `x-request-id`, and the browser validates it with the same zod schema as the server.
 
 ## Results on the six sample files
 
@@ -87,12 +72,6 @@ These come from `npm run extract:fixtures`, and they match [`fixtures/expected.j
 | KBS-10262 | 14 pallets loaded vs 16 unloaded | needs_review | 3 | $5,122.40 | CONFLICTING_VALUES (both candidates, none chosen) |
 | KBS-10270 | lines don't add up to the printed total | needs_review | 4 | $1,612.90 | TOTAL_MISMATCH (cites only the printed total) |
 | KBS-DR118 | 8 pages: p4 scanned, p5–8 not deliveries | needs_review | 21 | — | NO_TEXT_LAYER p4, NON_DELIVERY_SECTION p5–8 |
-
-A few things worth pointing out:
-
-- In **KBS-10255**, `$68.00 /bag` gives a price basis of `bag`, but the quantity gets no unit, because the document never says what the 4 is. Nothing is worked out either: no line totals, no summed weights.
-- In **KBS-10270**, the lines add up to 1,538.20 against a printed total of 1,612.90. Neither the sum nor the 74.70 gap appears anywhere in the output, and there's no made-up "freight" line to explain it.
-- In **KBS-DR118**, the 9 delivery lines and the 12 lines from the summary, returns, credit and acceptance pages are tagged by section and never added together. Page 4 being a scan doesn't affect any other page.
 
 ## How it works
 
@@ -140,8 +119,6 @@ flowchart LR
   s1 --> s2 --> s3 --> out(["ExtractionResult · HTTP 200"])
 ```
 
-When something can't be read safely, I refuse it at the smallest scope I can and keep everything else. This table shows where each refusal comes from:
-
 | Stage | What went wrong | Refusal | Scope | What happens |
 |---|---|---|---|---|
 | Upload | File over 4 MB | `FILE_TOO_LARGE` | document | HTTP 413, nothing read |
@@ -158,8 +135,6 @@ When something can't be read safely, I refuse it at the smallest scope I can and
 | ③ Checks | Lines don't add up to the printed total | `TOTAL_MISMATCH` | document | Only the printed total is cited; no sum or gap is shown |
 | ③ Checks | One count noun with different numbers ("14 pallets" / "16 pallets") | `CONFLICTING_VALUES` | document | Every mention listed with its source; none chosen |
 
-Extraction is deterministic: it reads the PDF's text layer by position, with no LLM and no OCR (D1, D2). Column positions come from the header text rather than hard-coded coordinates. The cross-checks work in integer cents, re-parsed from the printed text, and never write a computed number into the output (D3).
-
 ### The page (Part B)
 
 ```mermaid
@@ -172,8 +147,6 @@ stateDiagram-v2
   Finished --> Uploading: Read another file
 ```
 
-The page state is a single discriminated union, and `Finished` holds exactly one of these outcomes. Each one has its own message:
-
 | Outcome | When | What the user sees |
 |---|---|---|
 | `result` | 200, **including when everything was refused** | Summary banner, page chips, "Needs your attention", then page by page with each problem next to its row |
@@ -184,15 +157,11 @@ The page state is a single discriminated union, and `Finished` holds exactly one
 | `networkError` | The request never reached the server | "Couldn't reach the server. Check your connection and try again." |
 | `invalidResponse` | Not JSON, or fails the shared schema | "The server sent a response we couldn't understand", with the reference if there is one |
 
-None of them ever says "something went wrong".
-
 ### How the rules are tested
 
-I didn't want these rules to live only in the code, so the tests check them directly:
-
-- `fixtures.test.ts` runs every sample file and checks that every value traces back to a line on the page it names, that every number shown to the user is printed in the PDF, and that none of the fixture's forbidden numbers appear.
-- `pipeline.test.ts` forces page 2 to throw and checks that pages 1 and 3 still come through. It also feeds in forged values and checks that they're dropped and never appear anywhere.
-- `result-view.test.tsx` and `page-states.test.tsx` check that every refusal message reaches the screen word for word, for every sample file and every HTTP outcome. To make sure these tests actually catch the bug the brief describes, I temporarily replaced the messages with "Something went wrong" and confirmed they failed.
+- `fixtures.test.ts`: every value traces back to its page, every number shown to the user is printed in the PDF, and no forbidden number appears.
+- `pipeline.test.ts`: a page that throws doesn't affect the others, and forged values are dropped.
+- `result-view.test.tsx`, `page-states.test.tsx`: every refusal message reaches the screen word for word. Swapping in "Something went wrong" makes them fail.
 
 ## The three questions
 
@@ -230,22 +199,8 @@ The second-hardest call was where to enforce provenance (D12). My first version 
 
 ## Where I departed from the spec
 
-Each of these is explained in [`docs/DECISIONS.md`](docs/DECISIONS.md):
-
-- **D8:** text runs are trimmed, and a damaged PDF gets a 422 `NOT_A_PDF`.
-- **D9:** `0.500` is read as a decimal rather than refused as ambiguous.
-- **D10:** a line with an unreadable description keeps its other values.
-- **D11:** a header with a repeated column, or with no items under it, is refused rather than guessed at.
-- **D12:** provenance is checked where values enter the pipeline, not patched afterwards.
-- **D13:** the page has one "Uploading and reading…" state, because `fetch` can't tell when the upload finishes.
-- **D14:** the UI is built on shadcn/ui, with a loading skeleton.
-
-I didn't use tRPC even though the team does, because it doesn't handle multipart file uploads well. The upload goes to a plain Route Handler instead, and the shared zod schema gives the same type safety from end to end.
+A few small deviations (D8–D14) are explained in [`docs/DECISIONS.md`](docs/DECISIONS.md). I didn't use tRPC because it doesn't handle multipart uploads well; the shared zod schema gives the same end-to-end type safety.
 
 ## How I built it
 
-I built this with Claude Code, and the history shows the process:
-
-- I planned the work as Linear epics, one per milestone in [`docs/PLAN.md`](docs/PLAN.md). Every commit has its own ticket (the `IQE-n` in the subject line), with its acceptance criteria and notes.
-- Every code change went through an automated code review before it was committed, and each ticket records what the review found and how I fixed it. Plenty of the findings were real bugs: `n/a` being read as a price basis, the provenance guard leaking the very value it dropped, "Not on document" shown for a value that was printed but couldn't be read, and a browser API that would have crashed the results on older iPhones.
-- I ran an audit of the extraction output against the provenance rules twice, once after the pipeline was done and again before submitting.
+I built this with Claude Code. Each milestone in [`docs/PLAN.md`](docs/PLAN.md) is a Linear epic, and every commit has its own ticket (the `IQE-n` in the subject). Every code change went through an automated code review before it was committed. The review caught real bugs, such as the provenance guard leaking the value it dropped, and the fixes are noted on each ticket.

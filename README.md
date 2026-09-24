@@ -1,37 +1,36 @@
 # Insta Quote · PDF extraction with evidence and refusals
 
-Take-home for Insta Quote AI (full-stack).
+This is my take-home for the full-stack role at Insta Quote AI. It has two parts:
 
-- **Part A:** `POST /api/extract` takes a supplier PDF and returns JSON. The JSON holds the line items it could extract, each value with its page and the exact printed row it came from, plus a separate list of what it refused to extract and why.
-- **Part B:** a single page that uploads a PDF and shows the result, with every refusal written in plain language for a tradie.
+- **Part A** is an API, `POST /api/extract`. You send it a supplier PDF and it sends back the line items it could read. Every value comes with the page and the exact printed row it came from. Anything it refused to read is listed separately, with the reason.
+- **Part B** is a single page that uploads a PDF and shows the result, with every refusal explained in plain words a tradie would understand.
 
-**Live demo:** https://insta-quote-extract.vercel.app. Upload any PDF from [`fixtures/pdfs`](fixtures/pdfs), or call the API at `https://insta-quote-extract.vercel.app/api/extract`. Every push to `main` deploys there automatically.
+You can try it at **https://insta-quote-extract.vercel.app**. Upload any PDF from [`fixtures/pdfs`](fixtures/pdfs), or call the API directly. Every push to `main` redeploys it.
 
-**The hard rule this is built around:** never output a number you can't point to. Refusing is a valid result; guessing is not.
+The rule I built everything around comes from the brief: never output a number you can't point to. Refusing is a valid answer; guessing isn't.
 
-- Brief, spec and fixture notes: [`docs/TASK.md`](docs/TASK.md), [`docs/SPEC.md`](docs/SPEC.md), [`docs/FIXTURES.md`](docs/FIXTURES.md)
-- Every judgment call, with its cost: [`docs/DECISIONS.md`](docs/DECISIONS.md) (D1–D14 + known limitations)
+The original brief, my spec and my notes on each sample file are in [`docs/`](docs/). Every judgment call I made, and what it cost, is logged in [`docs/DECISIONS.md`](docs/DECISIONS.md).
 
-## Run it
+## Running it
 
-Needs Node ≥ 22.
+You'll need Node 22 or later.
 
 ```bash
 npm install
 npm run dev                # http://localhost:3000
-npm test                   # 392 tests (vitest, node + jsdom)
+npm test                   # vitest, in node and jsdom
 npm run typecheck
 npm run lint
 npm run extract:fixtures   # writes out/<fixture>.json for every sample PDF
 ```
 
-## API
+## The API
 
 ```bash
 curl -F "file=@fixtures/pdfs/KBS-10262.pdf" https://insta-quote-extract.vercel.app/api/extract
 ```
 
-A trimmed real response:
+Here's a trimmed version of the real response for that file:
 
 ```json
 {
@@ -62,11 +61,9 @@ A trimmed real response:
 }
 ```
 
-Each extracted value is `{ value, raw, evidence: { page, sourceText, bbox } }`:
+Every value it extracts has the shape `{ value, raw, evidence: { page, sourceText, bbox } }`. `raw` is exactly what was printed (`"$68.00 /bag"`, not `68`), it's always a substring of `sourceText`, and `sourceText` is always one line of that page's text. That's what makes every number traceable.
 
-- `raw` is exactly what was printed (`"$68.00 /bag"`, not `68`).
-- `raw` is always a substring of `sourceText`.
-- `sourceText` is always a line of that page's text.
+A refusal is a normal result, not an error, so a document is a 200 even when nothing on it could be read:
 
 | Case | Status | Body |
 |---|---|---|
@@ -76,13 +73,11 @@ Each extracted value is `{ value, raw, evidence: { page, sourceText, bbox } }`:
 | Not a PDF (by magic bytes), encrypted, 0 pages | 422 | `{ refusal, requestId }` |
 | Real failure | 500 | honest message + `requestId`, no stack |
 
-- **Request ids:** every response carries `x-request-id`.
-- **Logging:** each request writes one JSON log line (request id, status, page count, refusal codes, duration).
-- **One schema:** the client validates every response with the same zod schema as the server.
+Every response carries an `x-request-id` header, and the server writes one JSON log line per request with the status, page count and refusal codes. The browser checks every response against the same zod schema the server uses, so a malformed response can't slip through as a result.
 
-## Results on the six samples
+## Results on the six sample files
 
-Produced by `npm run extract:fixtures`. These results match [`fixtures/expected.json`](fixtures/expected.json) exactly: status, line count, line values, the exact set of refusals, totals and page statuses. `tests/fixtures.test.ts` asserts this on every run.
+These come from `npm run extract:fixtures`, and they match [`fixtures/expected.json`](fixtures/expected.json) exactly: status, line count, line values, the full set of refusals, totals and page statuses. `tests/fixtures.test.ts` checks this on every run.
 
 | File | Trap | Status | Lines | Printed total | Refusals |
 |---|---|---|---|---|---|
@@ -93,11 +88,11 @@ Produced by `npm run extract:fixtures`. These results match [`fixtures/expected.
 | KBS-10270 | lines don't add up to the printed total | needs_review | 4 | $1,612.90 | TOTAL_MISMATCH (cites only the printed total) |
 | KBS-DR118 | 8 pages: p4 scanned, p5–8 not deliveries | needs_review | 21 | — | NO_TEXT_LAYER p4, NON_DELIVERY_SECTION p5–8 |
 
-What that means in practice:
+A few things worth pointing out:
 
-- **KBS-10255:** `$68.00 /bag` gives `priceBasis: "bag"`, but the quantity gets **no unit**. Nothing is computed: no line totals (272, 108, …) and no summed weights.
-- **KBS-10270:** 1,538.20 and 74.70 (the sum and the gap) appear nowhere in the JSON or on screen, and there is no invented "freight" line.
-- **KBS-DR118:** the 9 delivery lines and the 12 summary/returns/credit/acceptance lines are tagged by section and never summed together. Page 4 failing doesn't affect pages 1–3 or 5–8.
+- In **KBS-10255**, `$68.00 /bag` gives a price basis of `bag`, but the quantity gets no unit, because the document never says what the 4 is. Nothing is worked out either: no line totals, no summed weights.
+- In **KBS-10270**, the lines add up to 1,538.20 against a printed total of 1,612.90. Neither the sum nor the 74.70 gap appears anywhere in the output, and there's no made-up "freight" line to explain it.
+- In **KBS-DR118**, the 9 delivery lines and the 12 lines from the summary, returns, credit and acceptance pages are tagged by section and never added together. Page 4 being a scan doesn't affect any other page.
 
 ## How it works
 
@@ -125,7 +120,7 @@ sequenceDiagram
 
 ### The extraction pipeline
 
-The pipeline runs in three stages. Stage 2 runs separately for each page, so one bad page can't take down the others. The provenance guard and the cross-checks run once, over the whole document, after every page is read.
+Extraction runs in three stages. The middle stage runs separately for each page, so one bad page can't take the others down with it. The provenance guard and the cross-checks run once, over the whole document, after every page has been read.
 
 ```mermaid
 %%{init: {"theme": "neutral"}}%%
@@ -145,7 +140,7 @@ flowchart LR
   s1 --> s2 --> s3 --> out(["ExtractionResult · HTTP 200"])
 ```
 
-**Where each refusal comes from.** A refusal is raised at the smallest scope that fits, and everything outside that scope is kept.
+When something can't be read safely, I refuse it at the smallest scope I can and keep everything else. This table shows where each refusal comes from:
 
 | Stage | What went wrong | Refusal | Scope | What happens |
 |---|---|---|---|---|
@@ -163,6 +158,8 @@ flowchart LR
 | ③ Checks | Lines don't add up to the printed total | `TOTAL_MISMATCH` | document | Only the printed total is cited; no sum or gap is shown |
 | ③ Checks | One count noun with different numbers ("14 pallets" / "16 pallets") | `CONFLICTING_VALUES` | document | Every mention listed with its source; none chosen |
 
+Extraction is deterministic: it reads the PDF's text layer by position, with no LLM and no OCR (D1, D2). Column positions come from the header text rather than hard-coded coordinates. The cross-checks work in integer cents, re-parsed from the printed text, and never write a computed number into the output (D3).
+
 ### The page (Part B)
 
 ```mermaid
@@ -175,7 +172,7 @@ stateDiagram-v2
   Finished --> Uploading: Read another file
 ```
 
-The page state is one discriminated union. `Finished` holds exactly one of these outcomes, and each has its own message:
+The page state is a single discriminated union, and `Finished` holds exactly one of these outcomes. Each one has its own message:
 
 | Outcome | When | What the user sees |
 |---|---|---|
@@ -187,77 +184,68 @@ The page state is one discriminated union. `Finished` holds exactly one of these
 | `networkError` | The request never reached the server | "Couldn't reach the server. Check your connection and try again." |
 | `invalidResponse` | Not JSON, or fails the shared schema | "The server sent a response we couldn't understand", with the reference if there is one |
 
-None of them says "something went wrong".
+None of them ever says "something went wrong".
 
-**Extraction is deterministic.** It parses the PDF text layer by coordinates, with no LLM and no OCR (D1, D2). Column positions come from the header text; none are hard-coded.
+### How the rules are tested
 
-**Cross-checks run on integer cents.** The cents are re-parsed from the printed `raw` strings, and the cross-checks never write a computed number into the output (D3).
+I didn't want these rules to live only in the code, so the tests check them directly:
 
-**Refusals are scoped as small as possible,** in the order document > page > line > field. One scanned page doesn't sink the file, and one unreadable cell doesn't sink its line (D4, D10).
-
-The rules are enforced by tests, not just by the code:
-
-- **`fixtures.test.ts`** checks these properties on every fixture:
-  - Every `Evidenced` value anywhere in the result traces back to a line of the page it names.
-  - Every number shown to the user is a whole token printed in the PDF.
-  - No `forbiddenInOutput` string appears.
-- **`pipeline.test.ts`** checks containment and the provenance guard:
-  - A test forces page 2 to throw, and pages 1 and 3 still come through.
-  - Forged values are dropped, and the forged number appears nowhere.
-- **`result-view.test.tsx` and `page-states.test.tsx`** check the screen:
-  - Every refusal's message reaches the screen **word for word**, for every fixture and every HTTP outcome.
-  - Planting the brief's exact bug (`"Something went wrong"`) makes these tests fail. I checked this and then reverted it.
+- `fixtures.test.ts` runs every sample file and checks that every value traces back to a line on the page it names, that every number shown to the user is printed in the PDF, and that none of the fixture's forbidden numbers appear.
+- `pipeline.test.ts` forces page 2 to throw and checks that pages 1 and 3 still come through. It also feeds in forged values and checks that they're dropped and never appear anywhere.
+- `result-view.test.tsx` and `page-states.test.tsx` check that every refusal message reaches the screen word for word, for every sample file and every HTTP outcome. To make sure these tests actually catch the bug the brief describes, I temporarily replaced the messages with "Something went wrong" and confirmed they failed.
 
 ## The three questions
 
-### What was the hardest decision, and why did I choose that way?
+### What was the hardest decision, and why did I make it that way?
 
-**Refusing scanned pages instead of running OCR (D2).**
+Refusing scanned pages instead of running OCR on them (D2).
 
-KBS-10241 is perfectly legible to a person, and its arithmetic is consistent. The product mindset is "say yes", so returning nothing for it is uncomfortable, and I'm least sure of this refusal from a product point of view.
+KBS-10241 is perfectly readable to a person, and its numbers add up. The product mindset is "say yes", so sending back nothing for it feels wrong, and of all the refusals it's the one I'm least comfortable with from a product point of view.
 
-I still chose to refuse, because OCR output is itself a guess about pixels. A `3` read as `8`, or a `1` read as `7`, becomes a confident number in a quote, and the rule is that a confidently wrong number is worse than a clear "we couldn't read this". Without per-token confidence and a human confirmation step, OCR text doesn't meet the bar of "the exact source text".
+I refused anyway, because OCR output is itself a guess about pixels. If a `3` is read as an `8`, or a `1` as a `7`, that becomes a confident number in someone's quote, and the brief is clear that a confidently wrong number is worse than an honest "we couldn't read this". Without a confidence score for each character and a person confirming the result, OCR text isn't "the exact source text".
 
-So the page is refused at page scope, the other pages continue, and the message tells the user what to do next: upload the digital PDF, or enter the items by hand. The same reasoning is behind leaving LLMs out of the extraction path (D1). An LLM would add a hallucination path that would then need a verifier to police it.
+So the scanned page is refused on its own, the other pages carry on, and the message tells the user what to do: upload the original digital PDF or enter those items by hand. The same reasoning is why there's no LLM in the extraction path (D1). It would add a way to hallucinate numbers, and then I'd need a verifier to catch them.
 
-The runner-up was **where to enforce provenance (D12)**. My first version checked the finished result and patched it. That produced output that contradicted itself: a conflict that still showed one of its two candidates, and a section relabelled after its lines had been tagged. Checking every value where it enters the pipeline, before any cross-check uses it, keeps each refusal whole.
+The second-hardest call was where to enforce provenance (D12). My first version checked the finished result and patched it up afterwards. That produced output that contradicted itself, like a conflict left showing only one of its two values. I moved the check to where each value enters the pipeline, before any cross-check uses it, so every refusal stays whole.
 
 ### Where am I not confident?
 
-- **Only one supplier's layouts.** All six files are ReportLab output from one supplier, with one text run per cell and left-aligned columns. A real invoice with wrapped descriptions, merged cells or right-aligned amounts will often fail closed with `UNRECOGNISED_LAYOUT`. That is safe, but not useful.
-- **Rows can go missing silently.** The table ends at the first row whose Item cell isn't a plain integer, such as a wrapped description, `3a` or `1.`. Any items after that row are neither read nor refused, and the page's TOTAL_MISMATCH would then blame the supplier for rows *I* failed to read. This is the gap that worries me most. A coverage check would close it (see below).
-- **D5 may be over-strict.** "4" with a price of `$68.00 /bag` is almost certainly 4 bags, but I don't set `unit: "bag"` because the document doesn't say so. A real user might find that pedantic.
-- **Heuristics.** Page sections are keyword matches on the subtitle, so an address like "Credit St" would read as a credit page (this fails safe). Conflicting counts use a fixed list of nouns. The cost note that explains a total mismatch is found by keywords.
-- **Totals are checked per page.** A total on the last page that covers several pages would raise a false TOTAL_MISMATCH.
-- **Damaged PDFs.** A file that starts with `%PDF-` but won't parse is told "isn't a PDF file", which is slightly off (D8).
-- **What I checked by hand.** In a real browser I clicked through DR118, 10262, 10241, a renamed `.txt` and a stopped server, at desktop width and at 375px. KBS-10234, 10255 and 10270 are covered by render tests and curl, not by hand.
-- **Not covered at all:** GST and currency (never stated in the fixtures, so amounts stay exactly as printed), and uploads larger than Vercel's ~4.5 MB limit on a self-hosted server.
+- **I've only seen one supplier's layout.** All six files come from the same generator, with one text run per cell and left-aligned columns. A real invoice with wrapped descriptions, merged cells or right-aligned amounts will often be refused as an unrecognised layout. That's safe, but it isn't useful.
+- **Rows can go missing without a refusal.** The table ends at the first row whose item number isn't a plain integer, such as a wrapped description, `3a` or `1.`. Anything after that row is neither read nor refused, and the total check would then blame the supplier for rows I failed to read. This is the gap that worries me most. The coverage check below would close it.
+- **I might be too strict about units (D5).** "4" at `$68.00 /bag` is almost certainly 4 bags, but I don't set the unit to "bag" because the document doesn't actually say so. A real user might find that pedantic.
+- **Some of it is keyword matching.** Page sections come from keywords in the subtitle, so an address like "Credit St" would make a delivery page look like a credit page (which fails safe). The conflicting-count check uses a fixed list of nouns, and the note that explains a total mismatch is found by keywords too.
+- **Totals are checked page by page.** A total on the last page that covers several pages would be wrongly flagged.
+- **Damaged PDFs get a slightly wrong message.** A file that starts like a PDF but won't open is told it "isn't a PDF file" (D8).
+- **Not everything was checked by hand.** I clicked through DR118, 10262, 10241, 10255 and 10270 in a real browser (10270 on the live site), plus a renamed text file and a stopped server, at desktop and phone width. KBS-10234 is covered by the render tests and curl only.
+- **Some things aren't handled at all:** GST and currency never appear in the samples, so amounts are shown exactly as printed. Uploads over Vercel's ~4.5 MB limit on a self-hosted server aren't handled either.
 
 ### What would I do with three more days?
 
-1. **A coverage check.** Every numeric text run on a page would have to be either used in a line or total, or listed as unaccounted-for in a refusal. This turns the "missing rows" gap above into an explicit refusal.
-2. **OCR as a confirmation flow, never as data.** Scanned pages would get OCR with per-token confidence, and each value would be shown as "read from image, please confirm". Nothing is merged until a person accepts it, and accepted values are stored with `source: "user"` (the schema already reserves this).
-3. **An LLM that proposes rows for unknown layouts.** Every proposed value would still be verified against the text layer by the same provenance guard, so the model can suggest structure but can never introduce a number.
-4. **Resolve actions in the UI.** For a conflict, the user picks 14 or 16. For a missing value, they type it. These values are visually distinct from document values and never written back as if they were printed.
-5. **More layouts and property-based tests.** Collect real invoices (with permission) and fuzz layouts (column order, alignment, wrapping), asserting that the provenance invariant always holds and that anything unrecognised fails closed.
-6. **An evidence overlay.** Render the page image and highlight each value's `bbox` (it is already in the output), so "where did this number come from" is visual.
+1. **Add a coverage check.** Every number on a page would have to end up either in a line or a total, or be listed in a refusal as unaccounted for. That turns the "missing rows" gap into an explicit refusal.
+2. **Use OCR as a confirmation step, never as data.** Scanned pages would get OCR with per-character confidence, shown as "read from the image, please confirm". Nothing would count until a person accepts it, and accepted values would be stored with `source: "user"` (the schema already has room for this).
+3. **Let an LLM propose rows for layouts I don't recognise.** Every value it proposes would still go through the same provenance guard, so it could suggest structure but never introduce a number.
+4. **Let users resolve refusals in the UI**, for example picking 14 or 16 pallets, or typing a missing price. Those values would be marked as the user's and never written back as if they'd been printed.
+5. **Test against more layouts.** I'd collect real invoices (with permission) and generate variations in column order, alignment and wrapping, checking that the provenance rules always hold and that anything unrecognised fails closed.
+6. **Show the evidence on the page image.** Every value already carries its `bbox`, so the page could be rendered with the value highlighted where it was printed.
 
-## Deviations from the spec
+## Where I departed from the spec
 
-- **D8:** Text runs are trimmed. A damaged PDF gets 422 `NOT_A_PDF`.
-- **D9:** `0.500` is a decimal, not ambiguous.
-- **D10:** `description` is optional, so a line with an unreadable description keeps its other values.
-- **D11:** A header that repeats a column, or has no items under it, fails closed.
-- **D12:** Provenance is checked where values enter the pipeline, not patched afterwards.
-- **D13:** There is one "Uploading and reading…" state, because `fetch` can't tell when the upload ends and processing starts.
-- **D14:** The UI uses shadcn/ui, with a loading skeleton.
+Each of these is explained in [`docs/DECISIONS.md`](docs/DECISIONS.md):
 
-**Why not tRPC:** the team uses tRPC, but it doesn't handle multipart file uploads well, so the upload is a plain Route Handler. The shared zod schema gives the same end-to-end type safety.
+- **D8:** text runs are trimmed, and a damaged PDF gets a 422 `NOT_A_PDF`.
+- **D9:** `0.500` is read as a decimal rather than refused as ambiguous.
+- **D10:** a line with an unreadable description keeps its other values.
+- **D11:** a header with a repeated column, or with no items under it, is refused rather than guessed at.
+- **D12:** provenance is checked where values enter the pipeline, not patched afterwards.
+- **D13:** the page has one "Uploading and reading…" state, because `fetch` can't tell when the upload finishes.
+- **D14:** the UI is built on shadcn/ui, with a loading skeleton.
 
-## How this was built
+I didn't use tRPC even though the team does, because it doesn't handle multipart file uploads well. The upload goes to a plain Route Handler instead, and the shared zod schema gives the same type safety from end to end.
 
-I built this with Claude Code, as the brief expects. The process is visible in the history:
+## How I built it
 
-- **Tracking.** I planned the work as Linear epics, one per milestone in [`docs/PLAN.md`](docs/PLAN.md). Every commit has its own ticket (`IQE-n` in the subject line), with a description, acceptance criteria and notes.
-- **Review.** Every code change went through an automated code review before it was committed. The findings, and how each was fixed, are recorded on each ticket. Many were real: `n/a` read as a price basis, a provenance guard that leaked the value it dropped, "Not on document" shown for a value that was printed but unreadable, and `Map.groupBy` crashing older iPhones.
-- **Output audits.** `/audit-output` checked the extraction output against the provenance rules twice, after M4 and before submission.
+I built this with Claude Code, and the history shows the process:
+
+- I planned the work as Linear epics, one per milestone in [`docs/PLAN.md`](docs/PLAN.md). Every commit has its own ticket (the `IQE-n` in the subject line), with its acceptance criteria and notes.
+- Every code change went through an automated code review before it was committed, and each ticket records what the review found and how I fixed it. Plenty of the findings were real bugs: `n/a` being read as a price basis, the provenance guard leaking the very value it dropped, "Not on document" shown for a value that was printed but couldn't be read, and a browser API that would have crashed the results on older iPhones.
+- I ran an audit of the extraction output against the provenance rules twice, once after the pipeline was done and again before submitting.

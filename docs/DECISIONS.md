@@ -48,6 +48,7 @@ Short entries: decision, why, cost. Append as you go. The README's "hardest deci
 - No detection of *missing* rows: if a row's layout doesn't match, it can end the table early without a refusal. A coverage check (every numeric run on the page is either used or listed) would catch this.
 - GST and currency are never stated in the fixtures. Amounts are output as printed, with no NZD or ex/incl-GST labels.
 - Only validated on one supplier's layout family (6 files).
+- Section keywords match anywhere in the subtitle, so an address like "Site 2 of 4 - Credit St" would be read as a credit page. That fails safe (lines are kept but flagged as non-delivery). The subtitle is assumed to be row 1, directly under the company name.
 
 ## D8. Run text is trimmed; a damaged PDF is refused as NOT_A_PDF
 

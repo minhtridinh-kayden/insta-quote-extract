@@ -5,7 +5,7 @@ Take-home for Insta Quote AI (full-stack).
 - **Part A:** `POST /api/extract` takes a supplier PDF and returns JSON. The JSON holds the line items it could extract, each value with its page and the exact printed row it came from, plus a separate list of what it refused to extract and why.
 - **Part B:** a single page that uploads a PDF and shows the result, with every refusal written in plain language for a tradie.
 
-**Live demo:** https://insta-quote-extract.vercel.app. Upload any PDF from [`fixtures/pdfs`](fixtures/pdfs), or call the API at `https://insta-quote-extract.vercel.app/api/extract`.
+**Live demo:** https://insta-quote-extract.vercel.app. Upload any PDF from [`fixtures/pdfs`](fixtures/pdfs), or call the API at `https://insta-quote-extract.vercel.app/api/extract`. Every push to `main` deploys there automatically.
 
 **The hard rule this is built around:** never output a number you can't point to. Refusing is a valid result; guessing is not.
 

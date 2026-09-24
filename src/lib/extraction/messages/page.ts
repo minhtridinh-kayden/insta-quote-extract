@@ -21,7 +21,7 @@ export const pageMessages: MessageBuilders<
     suggestedAction: `Check page ${page} yourself and enter any items by hand.`,
   }),
   NON_DELIVERY_SECTION: ({ page, section }) => ({
-    userMessage: `Page ${page} is ${sectionName(section)}. It lists items, but doesn't say whether they were delivered, returned or credited, so we've kept them separate from the delivered items.`,
+    userMessage: `Page ${page} is ${sectionName(section)}. It lists items, but doesn't say whether they are returns, credits or a repeat of the deliveries, so we haven't counted them as delivered items.`,
     suggestedAction: "Check this page yourself before adding any of these items to a quote.",
   }),
   COLUMN_NOT_PRESENT: ({ page, field }) => ({

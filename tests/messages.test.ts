@@ -81,6 +81,11 @@ describe("field labels", () => {
     expect(userMessage).toContain("The weight for");
   });
 
+  it("explains why non-delivery pages are kept apart", () => {
+    const { userMessage } = describeRefusal("NON_DELIVERY_SECTION", { page: 5, section: "summary" });
+    expect(userMessage).toContain("repeat of the deliveries");
+  });
+
   it("names a missing column by its printed heading", () => {
     const { userMessage } = describeRefusal("COLUMN_NOT_PRESENT", { page: 1, field: "unit" });
     expect(userMessage).toContain("no Unit column");

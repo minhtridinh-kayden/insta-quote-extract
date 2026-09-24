@@ -39,7 +39,7 @@ describe("cross-checks on the fixtures", () => {
     expect(refusals).toMatchObject([
       { code: "TOTAL_MISMATCH", scope: "document", page: 1, raw: "$1,612.90", candidates: [{ raw: "$1,612.90" }] },
     ]);
-    expect(refusals[0].userMessage).toContain("Freight and handling included where applicable.");
+    expect(refusals[0].userMessage).toContain("Freight and handling included where applicable");
     const json = JSON.stringify(refusals);
     for (const derived of ["1,538.20", "1538.2", "74.70", "74.7"]) expect(json).not.toContain(derived);
   });

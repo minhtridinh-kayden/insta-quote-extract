@@ -81,9 +81,17 @@ describe("field labels", () => {
     expect(userMessage).toContain("The weight for");
   });
 
-  it("explains why non-delivery pages are kept apart", () => {
-    const { userMessage } = describeRefusal("NON_DELIVERY_SECTION", { page: 5, section: "summary" });
-    expect(userMessage).toContain("repeat of the deliveries");
+  it("explains why each kind of non-delivery page is kept apart without contradicting itself", () => {
+    const summary = describeRefusal("NON_DELIVERY_SECTION", { page: 5, section: "summary" }).userMessage;
+    const returns = describeRefusal("NON_DELIVERY_SECTION", { page: 6, section: "returns" }).userMessage;
+    expect(summary).toContain("may repeat what's already on the delivery pages");
+    expect(returns).toMatch(/^Page 6 is a Returns Note\. .*goods sent back/);
+    expect(returns).not.toMatch(/whether they are returns/);
+  });
+
+  it("quotes a note without doubling its punctuation", () => {
+    const { userMessage } = describeRefusal("TOTAL_MISMATCH", samples.TOTAL_MISMATCH);
+    expect(userMessage).toContain('"Freight and handling included where applicable", but');
   });
 
   it("names a missing column by its printed heading", () => {

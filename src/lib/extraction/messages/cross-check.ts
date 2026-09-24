@@ -11,7 +11,7 @@ export const crossCheckMessages: MessageBuilders<
   TOTAL_MISMATCH: ({ page, totalRaw, note }) => ({
     userMessage: [
       `The items ${onPage(page)} don't add up to the Total printed on the page (${totalRaw}).`,
-      note && `The page says ${quote(note)}, but no separate amount is shown for it.`,
+      note && `The page says ${quote(note.replace(/[.!?]+$/, ""))}, but no separate amount is shown for it.`,
       "We haven't guessed which figure is right.",
     ]
       .filter(Boolean)

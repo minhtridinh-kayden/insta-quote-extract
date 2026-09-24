@@ -1,5 +1,13 @@
+import type { NonDeliverySection } from "@/lib/schema";
 import { columnHeading, fieldLabel, sectionName } from "./labels";
 import type { MessageBuilders } from "./types";
+
+const NOT_COUNTED_BECAUSE: Record<NonDeliverySection, string> = {
+  summary: "they may repeat what's already on the delivery pages",
+  returns: "they may be goods sent back rather than delivered",
+  credit: "they may be credits rather than deliveries",
+  acceptance: "the page may be a sign-off for items already delivered",
+};
 
 export const pageMessages: MessageBuilders<
   | "NO_TEXT_LAYER"
@@ -21,7 +29,7 @@ export const pageMessages: MessageBuilders<
     suggestedAction: `Check page ${page} yourself and enter any items by hand.`,
   }),
   NON_DELIVERY_SECTION: ({ page, section }) => ({
-    userMessage: `Page ${page} is ${sectionName(section)}. It lists items, but doesn't say whether they are returns, credits or a repeat of the deliveries, so we haven't counted them as delivered items.`,
+    userMessage: `Page ${page} is ${sectionName(section)}. It lists items, but ${NOT_COUNTED_BECAUSE[section]}, so we haven't counted them as delivered items.`,
     suggestedAction: "Check this page yourself before adding any of these items to a quote.",
   }),
   COLUMN_NOT_PRESENT: ({ page, field }) => ({

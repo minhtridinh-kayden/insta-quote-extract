@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { evidenced } from "./evidence";
+import { FieldPathSchema } from "./field";
 
 export const RefusalCodeSchema = z.enum([
   "NOT_A_PDF",
@@ -28,19 +29,34 @@ export type RefusalScope = z.infer<typeof RefusalScopeSchema>;
 
 export const CandidateSchema = evidenced(z.union([z.number(), z.string()]));
 
-export const RefusalSchema = z.object({
-  id: z.string().min(1),
-  code: RefusalCodeSchema,
-  scope: RefusalScopeSchema,
-  page: z.number().int().positive().optional(),
-  lineId: z.string().optional(),
-  field: z.string().optional(),
-  raw: z.string().optional(),
-  sourceText: z.string().optional(),
-  candidates: z.array(CandidateSchema).optional(),
-  userMessage: z.string().min(1),
-  suggestedAction: z.string().min(1).optional(),
-  technicalDetail: z.string(),
-});
+const requiredLocation: Record<RefusalScope, ("page" | "lineId" | "field")[]> = {
+  document: [],
+  page: ["page"],
+  line: ["page", "lineId"],
+  field: ["page", "lineId", "field"],
+};
+
+export const RefusalSchema = z
+  .object({
+    id: z.string().min(1),
+    code: RefusalCodeSchema,
+    scope: RefusalScopeSchema,
+    page: z.number().int().positive().optional(),
+    lineId: z.string().optional(),
+    field: FieldPathSchema.optional(),
+    raw: z.string().optional(),
+    sourceText: z.string().optional(),
+    candidates: z.array(CandidateSchema).optional(),
+    userMessage: z.string().min(1),
+    suggestedAction: z.string().min(1).optional(),
+    technicalDetail: z.string(),
+  })
+  .superRefine((refusal, ctx) => {
+    for (const key of requiredLocation[refusal.scope]) {
+      if (refusal[key] === undefined) {
+        ctx.addIssue({ code: "custom", path: [key], message: `${refusal.scope}-scope refusal needs ${key}` });
+      }
+    }
+  });
 
 export type Refusal = z.infer<typeof RefusalSchema>;

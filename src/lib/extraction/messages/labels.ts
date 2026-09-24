@@ -1,6 +1,6 @@
-import type { NonDeliverySection } from "@/lib/schema";
+import { EXTRA_FIELD_PREFIX, isExtraField, type FieldPath, type LineField, type NonDeliverySection } from "@/lib/schema";
 
-const FIELD_LABELS: Record<string, string> = {
+const FIELD_LABELS: Record<LineField, string> = {
   itemNo: "item number",
   description: "description",
   quantity: "quantity",
@@ -10,7 +10,7 @@ const FIELD_LABELS: Record<string, string> = {
   lineTotal: "line total",
 };
 
-const COLUMN_HEADINGS: Record<string, string> = {
+const COLUMN_HEADINGS: Partial<Record<LineField, string>> = {
   quantity: "Qty",
   unit: "Unit",
   unitPrice: "Unit Price",
@@ -24,14 +24,12 @@ const SECTION_NAMES: Record<NonDeliverySection, string> = {
   acceptance: "a Signed Acceptance",
 };
 
-const EXTRA_PREFIX = "extra.";
-
-export function fieldLabel(field: string): string {
-  if (field.startsWith(EXTRA_PREFIX)) return field.slice(EXTRA_PREFIX.length).toLowerCase();
-  return FIELD_LABELS[field] ?? field;
+export function fieldLabel(field: FieldPath): string {
+  if (isExtraField(field)) return field.slice(EXTRA_FIELD_PREFIX.length).toLowerCase();
+  return FIELD_LABELS[field];
 }
 
-export function columnHeading(field: string): string {
+export function columnHeading(field: LineField): string {
   return COLUMN_HEADINGS[field] ?? fieldLabel(field);
 }
 

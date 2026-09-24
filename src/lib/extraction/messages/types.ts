@@ -1,4 +1,4 @@
-import type { NonDeliverySection, RefusalCode } from "@/lib/schema";
+import type { FieldPath, LineField, NonDeliverySection, RefusalCode } from "@/lib/schema";
 
 export type RefusalCopy = {
   userMessage: string;
@@ -11,7 +11,7 @@ export type LineRef = {
 };
 
 export type FieldRef = LineRef & {
-  field: string;
+  field: FieldPath;
 };
 
 export type MessageInputs = {
@@ -23,7 +23,7 @@ export type MessageInputs = {
   PAGE_PARSE_FAILED: { page: number };
   UNRECOGNISED_LAYOUT: { page: number };
   NON_DELIVERY_SECTION: { page: number; section: NonDeliverySection };
-  COLUMN_NOT_PRESENT: { page: number; field: string };
+  COLUMN_NOT_PRESENT: { page: number; field: LineField };
   MISSING_VALUE: FieldRef & { raw?: string };
   AMBIGUOUS_NUMBER_FORMAT: FieldRef & { raw: string };
   AMBIGUOUS_UNIT_BASIS: FieldRef & { raw: string };
@@ -34,7 +34,7 @@ export type MessageInputs = {
   };
   TOTAL_MISMATCH: { page: number; totalRaw: string; note?: string };
   CONFLICTING_VALUES: { countNoun: string; raws: string[] };
-  VALUE_NOT_IN_SOURCE: { page: number; field: string };
+  VALUE_NOT_IN_SOURCE: { page: number; field: FieldPath };
 };
 
 export type MessageBuilder<C extends RefusalCode> = (input: MessageInputs[C]) => RefusalCopy;

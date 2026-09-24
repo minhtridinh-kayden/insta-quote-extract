@@ -53,6 +53,25 @@ describe("refusals and results", () => {
     technicalDetail: "page 1: 0 text runs",
   };
 
+  it("requires the location that matches its scope", () => {
+    const fieldRefusal = { ...refusal, code: "AMBIGUOUS_UNIT_BASIS", scope: "field", field: "extra.Weight" };
+    expect(RefusalSchema.safeParse(fieldRefusal).success).toBe(false);
+    expect(RefusalSchema.safeParse({ ...fieldRefusal, lineId: "p1-l1" }).success).toBe(true);
+    expect(RefusalSchema.safeParse({ ...refusal, page: undefined }).success).toBe(false);
+  });
+
+  it("allows document-scope refusals without a page", () => {
+    const conflict = { ...refusal, code: "CONFLICTING_VALUES", scope: "document", page: undefined };
+    expect(RefusalSchema.safeParse(conflict).success).toBe(true);
+  });
+
+  it("only accepts known line fields or extra columns", () => {
+    const columnRefusal = { ...refusal, code: "COLUMN_NOT_PRESENT", field: "lineTotal" };
+    expect(RefusalSchema.safeParse(columnRefusal).success).toBe(true);
+    expect(RefusalSchema.safeParse({ ...columnRefusal, field: "linetotal" }).success).toBe(false);
+    expect(RefusalSchema.safeParse({ ...columnRefusal, field: "extra." }).success).toBe(false);
+  });
+
   it("rejects unknown refusal codes", () => {
     expect(RefusalSchema.safeParse({ ...refusal, code: "OOPS" }).success).toBe(false);
   });

@@ -1,8 +1,11 @@
 export { sortRefusals, whereLabel } from "./attention";
 export { highlight, type Highlighted } from "./highlight";
+export { fieldRefusals, groupLinesByPage, type FieldRefusals, type LineGroup } from "./line-groups";
 export { invalidResponseMessage, NETWORK_MESSAGE } from "./messages";
 export type { SubmitOutcome } from "./outcome";
+export { pageChip, type PageChip } from "./page-chip";
 export { plural } from "./plural";
 export type { RequestState } from "./request-state";
+export { SECTION_LABELS } from "./sections";
 export { submitPdf } from "./submit-pdf";
 export { summarise, type Summary } from "./summary";

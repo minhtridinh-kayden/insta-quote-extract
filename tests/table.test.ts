@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { TextRun } from "@/lib/extraction/pdf";
 import { groupRows } from "@/lib/extraction/rows";
 import { extractTable, findTableLayout } from "@/lib/extraction/table";
-import { LineItemSchema, RefusalSchema, type LineItem } from "@/lib/schema";
+import { LineItemSchema, RefusalSchema } from "@/lib/schema";
 import { expectedFor } from "./helpers/expected";
+import { asExpected } from "./helpers/line-shape";
 import { fixturePageRows } from "./helpers/rows";
 
 const run = (str: string, x: number, y: number): TextRun => ({ str, x, y, w: str.length * 4, h: 9 });
@@ -18,22 +19,6 @@ function syntheticRows(...cells: (string | null)[][]) {
     }),
   );
   return groupRows(runs);
-}
-
-function asExpected(line: LineItem) {
-  return {
-    id: line.id,
-    section: line.section,
-    description: line.description?.raw,
-    ...(line.quantity && { quantity: line.quantity.raw }),
-    ...(line.unit && { unit: line.unit.raw }),
-    ...(line.unitPrice && { unitPrice: line.unitPrice.raw }),
-    ...(line.priceBasis && { priceBasis: line.priceBasis.value }),
-    ...(line.lineTotal && { lineTotal: line.lineTotal.raw }),
-    ...(Object.keys(line.extra).length > 0 && {
-      extra: Object.fromEntries(Object.entries(line.extra).map(([k, v]) => [k, v.raw])),
-    }),
-  };
 }
 
 const refusalKeys = (refusals: { code: string; scope: string; page?: number; lineId?: string; field?: string }[]) =>

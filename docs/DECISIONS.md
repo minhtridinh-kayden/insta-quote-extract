@@ -42,6 +42,18 @@ Short entries: decision, why, cost. Append as you go. The README's "hardest deci
 - **Decision:** 200 for any processed document (even 0 lines); 413/422 carry a structured refusal; 500 only for real failures, with requestId. The client validates with the same zod schema.
 - **Why:** This is the exact layer where a correct refusal becomes "something went wrong".
 
+## D8. Run text is trimmed; a damaged PDF is refused as NOT_A_PDF
+
+- **Decision:** Each text run's `str` is trimmed and whitespace-only runs are dropped before rows are built. A file that starts with `%PDF-` but that pdf.js can't parse (`InvalidPDFException`) is refused as `NOT_A_PDF`, with the parser message in `technicalDetail`.
+- **Why:** ReportLab emits `" "` spacer runs between cells. Trimming keeps `raw` ⊂ `sourceText` exact, since both come from the same trimmed strings. A damaged file is a problem with the upload, not our system, so it gets a refusal (422) rather than a 500.
+- **Cost:** `raw` can differ from the PDF bytes by surrounding whitespace. The user message for a damaged PDF says "isn't a PDF file", which is slightly off; a separate `DAMAGED_PDF` code would be more precise.
+
+## D9. A quantity like `0.500` is a decimal, not ambiguous
+
+- **Decision:** `AMBIGUOUS_NUMBER_FORMAT` applies to `^[1-9]\d{0,2}\.\d{3}$` (e.g. `1.250`), not SPEC's `^\d{1,3}\.\d{3}$`.
+- **Why:** A leading `0` can't be a thousands group, so `0.500` has only one reading. Refusing it would be over-refusal.
+- **Cost:** None found. `1.250` and `12.500` are still refused.
+
 ## D10. A line without a readable description is kept
 
 - **Decision:** `LineItem.description` is optional (SPEC §4 has it required). A blank or `TBC` description gives a field-scope `MISSING_VALUE`, and the line keeps its other printed values.
@@ -82,15 +94,3 @@ Short entries: decision, why, cost. Append as you go. The README's "hardest deci
 - GST and currency are never stated in the fixtures. Amounts are output as printed, with no NZD or ex/incl-GST labels.
 - Only validated on one supplier's layout family (6 files).
 - Section keywords match anywhere in the subtitle, so an address like "Site 2 of 4 - Credit St" would be read as a credit page. That fails safe (lines are kept but flagged as non-delivery). The subtitle is assumed to be row 1, directly under the company name.
-
-## D8. Run text is trimmed; a damaged PDF is refused as NOT_A_PDF
-
-- **Decision:** Each text run's `str` is trimmed and whitespace-only runs are dropped before rows are built. A file that starts with `%PDF-` but that pdf.js can't parse (`InvalidPDFException`) is refused as `NOT_A_PDF`, with the parser message in `technicalDetail`.
-- **Why:** ReportLab emits `" "` spacer runs between cells. Trimming keeps `raw` ⊂ `sourceText` exact, since both come from the same trimmed strings. A damaged file is a problem with the upload, not our system, so it gets a refusal (422) rather than a 500.
-- **Cost:** `raw` can differ from the PDF bytes by surrounding whitespace. The user message for a damaged PDF says "isn't a PDF file", which is slightly off; a separate `DAMAGED_PDF` code would be more precise.
-
-## D9. A quantity like `0.500` is a decimal, not ambiguous
-
-- **Decision:** `AMBIGUOUS_NUMBER_FORMAT` applies to `^[1-9]\d{0,2}\.\d{3}$` (e.g. `1.250`), not SPEC's `^\d{1,3}\.\d{3}$`.
-- **Why:** A leading `0` can't be a thousands group, so `0.500` has only one reading. Refusing it would be over-refusal.
-- **Cost:** None found. `1.250` and `12.500` are still refused.

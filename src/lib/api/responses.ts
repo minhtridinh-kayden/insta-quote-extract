@@ -1,7 +1,5 @@
-import type { ApiErrorBody, ApiErrorCode, ExtractionResult, Refusal, RejectionBody } from "@/lib/schema";
+import { REQUEST_ID_HEADER, type ApiErrorBody, type ApiErrorCode, type ExtractionResult, type Refusal, type RejectionBody } from "@/lib/schema";
 import { internalMessage, NO_FILE_MESSAGE } from "./messages";
-
-export const REQUEST_ID_HEADER = "x-request-id";
 
 const ERROR_STATUS: Record<ApiErrorCode, number> = { NO_FILE: 400, INTERNAL: 500 };
 

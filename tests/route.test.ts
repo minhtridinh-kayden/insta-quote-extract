@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { handleExtract, REQUEST_ID_HEADER } from "@/lib/api";
+import { handleExtract } from "@/lib/api";
 import type { Logger, RequestLog } from "@/lib/api/log";
 import { POST } from "@/app/api/extract/route";
 import {
@@ -7,6 +7,7 @@ import {
   ExtractionResultSchema,
   MAX_UPLOAD_BYTES,
   RejectionBodySchema,
+  REQUEST_ID_HEADER,
 } from "@/lib/schema";
 import { EXPECTED_FIXTURES, expectedFor } from "./helpers/expected";
 import { fixtureBytes } from "./helpers/fixtures";

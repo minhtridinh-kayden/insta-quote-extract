@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { RefusalSchema } from "./refusal";
 
+export const EXTRACT_PATH = "/api/extract";
+export const REQUEST_ID_HEADER = "x-request-id";
+
 export const MAX_UPLOAD_MB = 4;
 export const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
 

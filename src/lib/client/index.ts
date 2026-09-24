@@ -1,3 +1,5 @@
+export { sortRefusals, whereLabel } from "./attention";
+export { highlight, type Highlighted } from "./highlight";
 export { invalidResponseMessage, NETWORK_MESSAGE } from "./messages";
 export type { SubmitOutcome } from "./outcome";
 export { plural } from "./plural";

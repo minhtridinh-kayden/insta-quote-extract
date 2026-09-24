@@ -59,6 +59,12 @@ Short entries: decision, why, cost. Append as you go. The README's "hardest deci
 - **Why:** Patching a finished result (removing some candidates from a conflict, relabelling a section after its lines were tagged) produced self-contradicting output. Checking inputs keeps each refusal whole, and a structural bug is contained to its page (rule 4).
 - **Cost:** Cross-checks and linking run over the whole document outside the per-page try/catch. They only read checked values and don't throw on any known input; if one did, that is a real bug and the API returns an honest 500.
 
+## D13. One busy state instead of separate uploading and processing
+
+- **Decision:** The page state is `idle → uploading → finished(outcome)`, where the outcome is a discriminated union (result, rejected, tooLarge, badRequest, serverError, networkError, invalidResponse). SPEC §6 lists `uploading` and `processing` separately.
+- **Why:** `fetch` doesn't report when the request body has finished sending, so a `processing` state would be a guess. The single state says what is true: "Uploading and reading…".
+- **Cost:** No upload progress. `XMLHttpRequest` upload events could split the two states if large files make it worth it.
+
 ## Known limitations (fill in as found)
 
 - Count-noun conflict detection uses a fixed noun list (pallets, bags, boxes, rolls, bundles, crates, packs, sheets, cartons).

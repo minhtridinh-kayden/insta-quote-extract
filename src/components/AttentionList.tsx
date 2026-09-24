@@ -1,5 +1,6 @@
-import { plural } from "@/lib/client";
+import { plural, sortRefusals } from "@/lib/client";
 import type { Refusal } from "@/lib/schema";
+import { AttentionItem } from "./AttentionItem";
 
 export function AttentionList({ refusals }: { refusals: Refusal[] }) {
   if (refusals.length === 0) return null;
@@ -9,11 +10,8 @@ export function AttentionList({ refusals }: { refusals: Refusal[] }) {
         Needs your attention ({plural(refusals.length, "item")})
       </h2>
       <ul className="space-y-3">
-        {refusals.map((refusal) => (
-          <li key={refusal.id} id={refusal.id} className="rounded-lg border border-amber-300 bg-white p-4">
-            <p>{refusal.userMessage}</p>
-            {refusal.suggestedAction && <p className="mt-2 font-medium">{refusal.suggestedAction}</p>}
-          </li>
+        {sortRefusals(refusals).map((refusal) => (
+          <AttentionItem key={refusal.id} refusal={refusal} />
         ))}
       </ul>
     </section>

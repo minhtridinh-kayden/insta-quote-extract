@@ -66,6 +66,7 @@ Short entries: decision, why, cost. Append as you go. The README's "hardest deci
 - Column ranges start 4pt left of each heading, which fits left-aligned tables (all fixtures). A right-aligned amount wider than its heading would fall into the column to its left.
 - A `Total` row whose amount doesn't parse as money (e.g. `$2,63,0.00`) is not read as a total and raises no refusal, so the total-vs-lines check is skipped for that page.
 - A printed total is checked against the lines on its own page only. A total on the last page that covers several pages would raise a false TOTAL_MISMATCH.
+- The upload size is checked from `Content-Length` before the body is read, and from the file size after. A chunked upload with no `Content-Length` is read into memory before it gets its 413. On Vercel the platform's ~4.5 MB request limit caps this; a self-hosted deployment would need a streaming limit.
 - GST and currency are never stated in the fixtures. Amounts are output as printed, with no NZD or ex/incl-GST labels.
 - Only validated on one supplier's layout family (6 files).
 - Section keywords match anywhere in the subtitle, so an address like "Site 2 of 4 - Credit St" would be read as a credit page. That fails safe (lines are kept but flagged as non-delivery). The subtitle is assumed to be row 1, directly under the company name.

@@ -52,7 +52,8 @@ src/lib/extraction/          pure TS, no Next.js imports, fully unit-testable
   validate/                  cross-checks in integer cents re-parsed from raw: line arithmetic, total vs lines, conflicting counts
   messages/                  RefusalCode → plain-English userMessage + suggestedAction (builders grouped by scope; describeRefusal in index.ts)
   pipeline/                  extractDocument: per-page try/catch, provenance guard on inputs, cross-checks, linking, status
-src/app/api/extract/route.ts HTTP layer: size/type checks, status codes, requestId
+src/lib/api/                 HTTP layer: read upload (size/multipart), status-coded responses, request log, handleExtract
+src/app/api/extract/route.ts thin Next.js wiring: runtime nodejs, POST → handleExtract
 src/app/page.tsx             Part B UI (client component, explicit state machine)
 src/components/              UploadForm, ResultSummary, PageStrip, LineItemTable, AttentionList, EvidencePopover
 tests/                       *.test.ts(x); fixture tests read fixtures/expected.json

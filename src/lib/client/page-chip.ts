@@ -1,7 +1,7 @@
 import type { PageSummary, Refusal, RefusalCode } from "@/lib/schema";
 import { SECTION_LABELS } from "./sections";
 
-export type PageChip = { label: string; status: PageSummary["status"] };
+export type PageChip = { label: string; statusText: string; status: PageSummary["status"] };
 
 const REFUSED_REASON: Partial<Record<RefusalCode, string>> = {
   NO_TEXT_LAYER: "Scanned, not read",
@@ -16,9 +16,8 @@ const STATUS_WORDS: Record<PageSummary["status"], string> = {
 };
 
 export function pageChip(page: PageSummary, refusals: Refusal[]): PageChip {
-  const parts = [`p${page.page}`];
-  if (page.section) parts.push(SECTION_LABELS[page.section.value]);
   const reason = refusals.find((r) => r.page === page.page && REFUSED_REASON[r.code]);
-  parts.push(page.status === "refused" && reason ? REFUSED_REASON[reason.code]! : STATUS_WORDS[page.status]);
-  return { label: parts.join(" · "), status: page.status };
+  const statusText = page.status === "refused" && reason ? REFUSED_REASON[reason.code]! : STATUS_WORDS[page.status];
+  const parts = [`p${page.page}`, ...(page.section ? [SECTION_LABELS[page.section.value]] : []), statusText];
+  return { label: parts.join(" · "), statusText, status: page.status };
 }

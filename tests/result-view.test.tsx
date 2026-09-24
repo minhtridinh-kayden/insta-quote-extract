@@ -35,8 +35,9 @@ describe("a fully refused document", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "This file is a scanned image, so there was no text for us to read. Nothing was extracted.",
     );
-    expect(screen.getByText(result.refusals[0].userMessage)).toBeInTheDocument();
-    expect(screen.getByText("p1 · Scanned, not read")).toBeInTheDocument();
+    expect(screen.getAllByText(result.refusals[0].userMessage)).toHaveLength(2);
+    expect(document.getElementById("page-1")).toHaveTextContent(result.refusals[0].userMessage);
+    expect(screen.getAllByText("p1 · Scanned, not read").length).toBeGreaterThan(0);
   });
 });
 

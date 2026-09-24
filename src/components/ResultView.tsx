@@ -1,6 +1,6 @@
 import type { ExtractionResult } from "@/lib/schema";
 import { AttentionList } from "./AttentionList";
-import { LineItemTable } from "./LineItemTable";
+import { PageSections } from "./PageSections";
 import { PageStrip } from "./PageStrip";
 import { ResultSummary } from "./ResultSummary";
 
@@ -10,7 +10,7 @@ export function ResultView({ result }: { result: ExtractionResult }) {
       <ResultSummary result={result} />
       <PageStrip result={result} />
       <AttentionList refusals={result.refusals} />
-      <LineItemTable result={result} />
+      <PageSections result={result} />
     </div>
   );
 }

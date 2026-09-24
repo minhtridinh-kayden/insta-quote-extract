@@ -116,7 +116,7 @@ describe("each outcome shows its own reason", () => {
     mockFetch({ status: 200, body: { ...result, lineItems: [{ ...result.lineItems[0], id: "line-1" }] } });
     uploadDocument();
     expect(await screen.findByText(/The server sent a response we couldn't understand/)).toBeInTheDocument();
-    expect(screen.queryByText("Line items, as printed")).not.toBeInTheDocument();
+    expect(screen.queryByText("Page by page, as printed")).not.toBeInTheDocument();
   });
 });
 

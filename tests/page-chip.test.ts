@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupLinesByPage, pageChip } from "@/lib/client";
+import { pageChip, pageViews } from "@/lib/client";
 import { fixtureResult } from "./helpers/results";
 
 describe("pageChip", () => {
@@ -18,17 +18,25 @@ describe("pageChip", () => {
   });
 });
 
-describe("groupLinesByPage", () => {
-  it("groups DR118 lines by page, skipping the unread page", async () => {
-    const groups = groupLinesByPage(await fixtureResult("KBS-DR118.pdf"));
-    expect(groups.map((g) => [g.page, g.section, g.lines.length])).toEqual([
-      [1, "delivery", 3], [2, "delivery", 3], [3, "delivery", 3],
-      [5, "summary", 3], [6, "returns", 3], [7, "credit", 3], [8, "acceptance", 3],
+describe("pageViews", () => {
+  it("lists every page in order, including the one that wasn't read", async () => {
+    const views = pageViews(await fixtureResult("KBS-DR118.pdf"));
+    expect(views.map((v) => [v.page, v.sectionLabel ?? "-", v.lines.length])).toEqual([
+      [1, "Delivery", 3], [2, "Delivery", 3], [3, "Delivery", 3], [4, "-", 0],
+      [5, "Summary", 3], [6, "Returns note", 3], [7, "Credit adjustment", 3], [8, "Signed acceptance", 3],
     ]);
   });
 
-  it("collects extra columns such as Weight", async () => {
-    const [group] = groupLinesByPage(await fixtureResult("KBS-10255.pdf"));
-    expect(group.extraHeadings).toEqual(["Weight"]);
+  it("puts page-level notes on their page and line notes on their line", async () => {
+    const views = pageViews(await fixtureResult("KBS-10255.pdf"));
+    expect(views[0].pageNotes.map((r) => r.code)).toEqual(["COLUMN_NOT_PRESENT", "COLUMN_NOT_PRESENT"]);
+    expect(views[0].lineNotes.get("p1-l1")?.map((r) => r.field)).toEqual(["extra.Weight"]);
+    expect(views[0].lineNotes.get("p1-l2")).toEqual([]);
+    expect(views[0].extraHeadings).toEqual(["Weight"]);
+  });
+
+  it("places a document-wide conflict on the pages its candidates come from", async () => {
+    const [view] = pageViews(await fixtureResult("KBS-10262.pdf"));
+    expect(view.pageNotes.map((r) => r.code)).toEqual(["CONFLICTING_VALUES"]);
   });
 });

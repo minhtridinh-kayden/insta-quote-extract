@@ -1,0 +1,284 @@
+{
+  "$comment": "Golden expectations. tests/fixtures.test.ts asserts each file against this. 'lines' values are the expected `raw` strings. 'refusals' is the exact multiset of refusals matched on the keys given (code, scope, page?, lineId?, field?, candidateRaws?); extra or missing refusals fail the test. 'forbiddenInOutput': none of these strings may appear in JSON.stringify(result) after removing requestId and every bbox (those can contain arbitrary digits). Change this file only with a note in docs/DECISIONS.md.",
+  "KBS-10234.pdf": {
+    "httpStatus": 200,
+    "status": "complete",
+    "pageCount": 1,
+    "lineCount": 5,
+    "lines": [
+      {
+        "id": "p1-l1",
+        "section": "packing_list",
+        "description": "10mm GIB Standard board 2400x1200",
+        "quantity": "48",
+        "unit": "sheet",
+        "unitPrice": "$24.90",
+        "lineTotal": "$1,195.20"
+      },
+      {
+        "id": "p1-l2",
+        "section": "packing_list",
+        "description": "13mm GIB Fyreline board 2700x1200",
+        "quantity": "12",
+        "unit": "sheet",
+        "unitPrice": "$38.50",
+        "lineTotal": "$462.00"
+      },
+      {
+        "id": "p1-l3",
+        "section": "packing_list",
+        "description": "Stud adhesive 400ml cartridge",
+        "quantity": "36",
+        "unit": "ea",
+        "unitPrice": "$9.80",
+        "lineTotal": "$352.80"
+      },
+      {
+        "id": "p1-l4",
+        "section": "packing_list",
+        "description": "GIB Rondo top hat batten 3.6m",
+        "quantity": "20",
+        "unit": "ea",
+        "unitPrice": "$14.20",
+        "lineTotal": "$284.00"
+      },
+      {
+        "id": "p1-l5",
+        "section": "packing_list",
+        "description": "Plasterboard screws 32mm (box of 1000)",
+        "quantity": "8",
+        "unit": "box",
+        "unitPrice": "$42.00",
+        "lineTotal": "$336.00"
+      }
+    ],
+    "documentTotals": [
+      "$2,630.00"
+    ],
+    "refusals": [],
+    "forbiddenInOutput": []
+  },
+  "KBS-10241.pdf": {
+    "httpStatus": 200,
+    "status": "nothing_extracted",
+    "pageCount": 1,
+    "lineCount": 0,
+    "documentTotals": [],
+    "refusals": [
+      {
+        "code": "NO_TEXT_LAYER",
+        "scope": "page",
+        "page": 1
+      }
+    ],
+    "forbiddenInOutput": [
+      "2,002.40",
+      "1,104.00",
+      "662.40"
+    ]
+  },
+  "KBS-10255.pdf": {
+    "httpStatus": 200,
+    "status": "needs_review",
+    "pageCount": 1,
+    "lineCount": 4,
+    "lines": [
+      {
+        "id": "p1-l1",
+        "section": "packing_list",
+        "description": "Galv nails 90mm, bulk",
+        "quantity": "4",
+        "unitPrice": "$68.00 /bag",
+        "priceBasis": "bag",
+        "extra": {
+          "Weight": "25kg"
+        }
+      },
+      {
+        "id": "p1-l2",
+        "section": "packing_list",
+        "description": "Roofing screws, loose",
+        "quantity": "1200",
+        "unitPrice": "$0.09 /ea",
+        "priceBasis": "ea",
+        "extra": {
+          "Weight": "480g total"
+        }
+      },
+      {
+        "id": "p1-l3",
+        "section": "packing_list",
+        "description": "Construction adhesive tubs",
+        "quantity": "6",
+        "unitPrice": "$11.50 /ea",
+        "priceBasis": "ea",
+        "extra": {
+          "Weight": "1.2kg"
+        }
+      },
+      {
+        "id": "p1-l4",
+        "section": "packing_list",
+        "description": "Packing shims, bundle",
+        "quantity": "3",
+        "unitPrice": "$4.20 /bundle",
+        "priceBasis": "bundle",
+        "extra": {
+          "Weight": "650g"
+        }
+      }
+    ],
+    "mustNotHaveFields": [
+      "unit",
+      "lineTotal"
+    ],
+    "documentTotals": [],
+    "refusals": [
+      {
+        "code": "COLUMN_NOT_PRESENT",
+        "scope": "page",
+        "page": 1,
+        "field": "lineTotal"
+      },
+      {
+        "code": "COLUMN_NOT_PRESENT",
+        "scope": "page",
+        "page": 1,
+        "field": "unit"
+      },
+      {
+        "code": "AMBIGUOUS_UNIT_BASIS",
+        "scope": "field",
+        "page": 1,
+        "lineId": "p1-l1",
+        "field": "extra.Weight"
+      },
+      {
+        "code": "AMBIGUOUS_UNIT_BASIS",
+        "scope": "field",
+        "page": 1,
+        "lineId": "p1-l3",
+        "field": "extra.Weight"
+      },
+      {
+        "code": "AMBIGUOUS_UNIT_BASIS",
+        "scope": "field",
+        "page": 1,
+        "lineId": "p1-l4",
+        "field": "extra.Weight"
+      }
+    ],
+    "forbiddenInOutput": [
+      "272",
+      "108.00",
+      "12.60"
+    ]
+  },
+  "KBS-10262.pdf": {
+    "httpStatus": 200,
+    "status": "needs_review",
+    "pageCount": 1,
+    "lineCount": 3,
+    "documentTotals": [
+      "$5,122.40"
+    ],
+    "refusals": [
+      {
+        "code": "CONFLICTING_VALUES",
+        "scope": "document",
+        "candidateRaws": [
+          "14 pallets",
+          "16 pallets"
+        ]
+      }
+    ],
+    "forbiddenInOutput": []
+  },
+  "KBS-10270.pdf": {
+    "httpStatus": 200,
+    "status": "needs_review",
+    "pageCount": 1,
+    "lineCount": 4,
+    "documentTotals": [
+      "$1,612.90"
+    ],
+    "refusals": [
+      {
+        "code": "TOTAL_MISMATCH",
+        "scope": "document",
+        "page": 1,
+        "candidateRaws": [
+          "$1,612.90"
+        ]
+      }
+    ],
+    "forbiddenInOutput": [
+      "1,538.20",
+      "1538.2",
+      "74.70",
+      "74.7"
+    ]
+  },
+  "KBS-DR118.pdf": {
+    "httpStatus": 200,
+    "status": "needs_review",
+    "pageCount": 8,
+    "lineCount": 21,
+    "linesBySection": {
+      "delivery": 9,
+      "summary": 3,
+      "returns": 3,
+      "credit": 3,
+      "acceptance": 3
+    },
+    "linesByPage": {
+      "1": 3,
+      "2": 3,
+      "3": 3,
+      "4": 0,
+      "5": 3,
+      "6": 3,
+      "7": 3,
+      "8": 3
+    },
+    "pageStatus": {
+      "1": "ok",
+      "2": "ok",
+      "3": "ok",
+      "4": "refused",
+      "5": "needs_review",
+      "6": "needs_review",
+      "7": "needs_review",
+      "8": "needs_review"
+    },
+    "documentTotals": [],
+    "refusals": [
+      {
+        "code": "NO_TEXT_LAYER",
+        "scope": "page",
+        "page": 4
+      },
+      {
+        "code": "NON_DELIVERY_SECTION",
+        "scope": "page",
+        "page": 5
+      },
+      {
+        "code": "NON_DELIVERY_SECTION",
+        "scope": "page",
+        "page": 6
+      },
+      {
+        "code": "NON_DELIVERY_SECTION",
+        "scope": "page",
+        "page": 7
+      },
+      {
+        "code": "NON_DELIVERY_SECTION",
+        "scope": "page",
+        "page": 8
+      }
+    ],
+    "forbiddenInOutput": []
+  }
+}

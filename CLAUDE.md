@@ -40,11 +40,13 @@ Read these before writing code:
 ```
 src/lib/schema/              zod schema + types shared by server and client (one module per concept, re-exported from index.ts)
 src/lib/extraction/          pure TS, no Next.js imports, fully unit-testable
-  pdf.ts                     PDF bytes → pages (text runs with x, y, w, h); per-page error isolation
+  pdf/                       PDF bytes → pages (text runs with x, y, w, h); per-page error isolation
   rows.ts                    group runs into visual rows; build pageText and sourceText
-  layout.ts                  find the table header, derive column x-ranges from header text
-  table.ts                   header → line items (cells mapped to columns)
-  numbers.ts                 strict parsers for money / quantity / basis; ambiguity detection
+  columns.ts                 known table headings ↔ line fields (shared by table and messages)
+  evidence.ts                build Evidenced values from runs/rows (raw, sourceText, bbox)
+  refusal.ts                 makeRefusal: code + location + message input → Refusal with stable id
+  table/                     layout (header → column ranges), body (item rows), cells, fields, line, missing-columns
+  numbers/                   strict parsers for money / price basis / quantity / measurements; missing tokens
   section.ts                 classify page role from its subtitle (delivery, summary, returns…)
   notes.ts                   non-table text: printed totals, "<n> <count-noun>" mentions
   validate.ts                cross-checks: line arithmetic, total vs lines, conflicting mentions

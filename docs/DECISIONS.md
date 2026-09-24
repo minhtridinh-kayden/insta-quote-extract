@@ -42,10 +42,22 @@ Short entries: decision, why, cost. Append as you go. The README's "hardest deci
 - **Decision:** 200 for any processed document (even 0 lines); 413/422 carry a structured refusal; 500 only for real failures, with requestId. The client validates with the same zod schema.
 - **Why:** This is the exact layer where a correct refusal becomes "something went wrong".
 
+## D10. A line without a readable description is kept
+
+- **Decision:** `LineItem.description` is optional (SPEC §4 has it required). A blank or `TBC` description gives a field-scope `MISSING_VALUE`, and the line keeps its other printed values.
+- **Why:** Rule 4: one bad field must not discard the rest of its line. Requiring a description meant dropping good qty/price/total along with it.
+- **Cost:** The UI must show "Not on document" for a missing description, like any other missing field.
+
+## D11. Ambiguous tables fail closed
+
+- **Decision:** A header that names the same column twice, or a header with no numbered item rows under it, is `UNRECOGNISED_LAYOUT`. The first column extends to the page's left edge so right-aligned item numbers aren't lost.
+- **Why:** Two `Qty` columns means two printed values for one field; picking one is guessing. A header with nothing under it means the layout wasn't understood, and "0 items, no problems" would be a silent failure.
+
 ## Known limitations (fill in as found)
 
 - Count-noun conflict detection uses a fixed noun list (pallets, bags, boxes, rolls, bundles, crates, packs, sheets, cartons).
-- No detection of *missing* rows: if a row's layout doesn't match, it can end the table early without a refusal. A coverage check (every numeric run on the page is either used or listed) would catch this.
+- No detection of *missing* rows: the table ends at the first row whose Item cell isn't a plain positive integer (e.g. a wrapped description, `3a`, `1.`), and any item rows after it are not read and not refused. A coverage check (every numeric run on the page is either used or listed) would catch this.
+- Column ranges start 4pt left of each heading, which fits left-aligned tables (all fixtures). A right-aligned amount wider than its heading would fall into the column to its left.
 - GST and currency are never stated in the fixtures. Amounts are output as printed, with no NZD or ex/incl-GST labels.
 - Only validated on one supplier's layout family (6 files).
 - Section keywords match anywhere in the subtitle, so an address like "Site 2 of 4 - Credit St" would be read as a credit page. That fails safe (lines are kept but flagged as non-delivery). The subtitle is assumed to be row 1, directly under the company name.

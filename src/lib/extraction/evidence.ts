@@ -1,6 +1,6 @@
 import type { Evidenced } from "@/lib/schema";
 import type { TextRun } from "./pdf";
-import type { Row } from "./rows";
+import { joinRuns, type Row } from "./rows";
 
 type BBox = [number, number, number, number];
 
@@ -12,11 +12,15 @@ function bboxOf(runs: TextRun[]): BBox {
   return [left, bottom, right - left, top - bottom];
 }
 
-export function fromRow<T>(page: number, row: Row, value: T): Evidenced<T> {
+export function fromRuns<T>(page: number, row: Row, runs: TextRun[], value: T): Evidenced<T> {
   return {
     value,
-    raw: row.text,
-    evidence: { page, sourceText: row.text, bbox: bboxOf(row.runs) },
+    raw: joinRuns(runs),
+    evidence: { page, sourceText: row.text, bbox: bboxOf(runs) },
     source: "document",
   };
+}
+
+export function fromRow<T>(page: number, row: Row, value: T): Evidenced<T> {
+  return fromRuns(page, row, row.runs, value);
 }

@@ -9,6 +9,10 @@ export type Row = {
   text: string;
 };
 
+export function joinRuns(runs: TextRun[]): string {
+  return runs.map((run) => run.str).join(" ");
+}
+
 export function groupRows(runs: TextRun[]): Row[] {
   const byY = [...runs].sort((a, b) => b.y - a.y || a.x - b.x);
   const groups: TextRun[][] = [];
@@ -19,7 +23,7 @@ export function groupRows(runs: TextRun[]): Row[] {
   }
   return groups.map((group, index) => {
     const sorted = group.sort((a, b) => a.x - b.x);
-    return { index, y: sorted[0].y, runs: sorted, text: sorted.map((run) => run.str).join(" ") };
+    return { index, y: sorted[0].y, runs: sorted, text: joinRuns(sorted) };
   });
 }
 

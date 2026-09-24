@@ -10,7 +10,7 @@ export const LineItemSchema = z.object({
   page: z.number().int().positive(),
   section: SectionSchema,
   itemNo: EvidencedNumber.optional(),
-  description: EvidencedString,
+  description: EvidencedString.optional(),
   quantity: EvidencedNumber.optional(),
   unit: EvidencedString.optional(),
   unitPrice: EvidencedNumber.optional(),

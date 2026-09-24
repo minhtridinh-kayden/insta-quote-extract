@@ -121,25 +121,7 @@ flowchart LR
 
 ### The page (Part B)
 
-```mermaid
-%%{init: {"theme": "neutral"}}%%
-stateDiagram-v2
-  direction LR
-  [*] --> Idle
-  Idle --> Uploading: Read document
-  Uploading --> Finished: response, or no response
-  Finished --> Uploading: Read another file
-```
-
-| Outcome | When | What the user sees |
-|---|---|---|
-| `result` | 200, **including when everything was refused** | Summary banner, page chips, "Needs your attention", then page by page with each problem next to its row |
-| `rejected` | 422 | The refusal's own message, what to do, and a reference |
-| `tooLarge` | Over 4 MB (checked before upload), or a 413 from the platform | The 4 MB limit in plain words |
-| `badRequest` | 400 | "We didn't receive a file…" |
-| `serverError` | 500 | An honest message and the reference to quote |
-| `networkError` | The request never reached the server | "Couldn't reach the server. Check your connection and try again." |
-| `invalidResponse` | Not JSON, or fails the shared schema | "The server sent a response we couldn't understand", with the reference if there is one |
+Every outcome has its own message: the refusal's own text for 413/422, an honest message plus a reference for 500, and separate messages for a dropped connection or a response that fails the shared schema. None of them says "something went wrong", and `tests/page-states.test.tsx` checks each one.
 
 ### How the rules are tested
 

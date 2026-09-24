@@ -21,6 +21,24 @@ export function fromRuns<T>(page: number, row: Row, runs: TextRun[], value: T): 
   };
 }
 
+function runsCovering(row: Row, start: number, end: number): TextRun[] {
+  let offset = 0;
+  return row.runs.filter((run) => {
+    const runStart = offset;
+    offset += run.str.length + 1;
+    return runStart < end && runStart + run.str.length > start;
+  });
+}
+
+export function fromText<T>(page: number, row: Row, start: number, raw: string, value: T): Evidenced<T> {
+  return {
+    value,
+    raw,
+    evidence: { page, sourceText: row.text, bbox: bboxOf(runsCovering(row, start, start + raw.length)) },
+    source: "document",
+  };
+}
+
 export function fromRow<T>(page: number, row: Row, value: T): Evidenced<T> {
   return fromRuns(page, row, row.runs, value);
 }

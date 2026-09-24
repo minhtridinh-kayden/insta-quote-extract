@@ -58,6 +58,7 @@ Short entries: decision, why, cost. Append as you go. The README's "hardest deci
 - Count-noun conflict detection uses a fixed noun list (pallets, bags, boxes, rolls, bundles, crates, packs, sheets, cartons).
 - No detection of *missing* rows: the table ends at the first row whose Item cell isn't a plain positive integer (e.g. a wrapped description, `3a`, `1.`), and any item rows after it are not read and not refused. A coverage check (every numeric run on the page is either used or listed) would catch this.
 - Column ranges start 4pt left of each heading, which fits left-aligned tables (all fixtures). A right-aligned amount wider than its heading would fall into the column to its left.
+- A `Total` row whose amount doesn't parse as money (e.g. `$2,63,0.00`) is not read as a total and raises no refusal, so the total-vs-lines check is skipped for that page.
 - GST and currency are never stated in the fixtures. Amounts are output as printed, with no NZD or ex/incl-GST labels.
 - Only validated on one supplier's layout family (6 files).
 - Section keywords match anywhere in the subtitle, so an address like "Site 2 of 4 - Credit St" would be read as a credit page. That fails safe (lines are kept but flagged as non-delivery). The subtitle is assumed to be row 1, directly under the company name.

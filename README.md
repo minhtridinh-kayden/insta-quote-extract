@@ -101,77 +101,93 @@ What that means in practice:
 
 ## How it works
 
-### System overview
+### One request, end to end
 
 ```mermaid
+%%{init: {"theme": "neutral"}}%%
+sequenceDiagram
+  autonumber
+  actor T as Tradie
+  participant P as Page (browser)
+  participant A as POST /api/extract
+  participant E as Extraction pipeline
+  T->>P: Choose a PDF, press "Read document"
+  Note over P: Over 4 MB? Say so now, don't upload
+  P->>A: Upload the file (multipart)
+  Note over A: No file → 400<br/>Over 4 MB → 413 FILE_TOO_LARGE
+  A->>E: PDF bytes
+  E-->>A: ExtractionResult, or a document refusal
+  A-->>P: 200 result · 422 refusal · 500 + requestId
+  Note over A: One JSON log line per requestId
+  P->>P: Validate with the same zod schema as the server
+  P-->>T: The result, or a notice with the real reason
+```
+
+### The extraction pipeline
+
+The pipeline runs in three stages. Stage 2 runs separately for each page, so one bad page can't take down the others. The provenance guard and the cross-checks run once, over the whole document, after every page is read.
+
+```mermaid
+%%{init: {"theme": "neutral"}}%%
 flowchart LR
-  user(["Tradie"]) --> form
-  subgraph browser["Browser · src/app/page.tsx"]
-    form["UploadForm"] --> submit["submitPdf<br/>size check before upload"]
-    validate["Validate the response<br/>with the shared zod schema"] --> screen["Result screen,<br/>or a notice with the real reason"]
+  subgraph s1["① The file"]
+    direction TB
+    a1["Check the %PDF- signature"] --> a2["Open it, count the pages"]
   end
-  subgraph vercel["Vercel · Node runtime"]
-    route["POST /api/extract<br/>route.ts → handleExtract"] <--> pipeline["extractDocument<br/>src/lib/extraction"]
-    route -.-> logs[("One JSON log line<br/>per requestId")]
+  subgraph s2["② Each page, on its own"]
+    direction TB
+    b1["Read text runs"] --> b2["Group runs into rows"] --> b3["Section from the subtitle"] --> b4["Header → column positions"] --> b5["Read cells with strict parsers"] --> b6["Read notes: totals, counts"]
   end
-  submit -- "multipart PDF" --> route
-  route -- "200 ExtractionResult<br/>413 / 422 refusal<br/>400 / 500 error + requestId" --> validate
-  schema[["src/lib/schema<br/>shared zod contract"]] -.-> route
-  schema -.-> validate
-  github["GitHub main"] -- "auto-deploy on push" --> vercel
+  subgraph s3["③ The whole document"]
+    direction TB
+    c1["Provenance guard on every value"] --> c2["Cross-checks in integer cents"] --> c3["Link notes to lines, set status"]
+  end
+  s1 --> s2 --> s3 --> out(["ExtractionResult · HTTP 200"])
 ```
 
-### Extraction pipeline, and where each refusal comes from
+**Where each refusal comes from.** A refusal is raised at the smallest scope that fits, and everything outside that scope is kept.
 
-Amber boxes are refusals. Each one is raised at the smallest scope that fits: document > page > line > field. Everything else on the page, or in the line, is kept.
+| Stage | What went wrong | Refusal | Scope | What happens |
+|---|---|---|---|---|
+| Upload | File over 4 MB | `FILE_TOO_LARGE` | document | HTTP 413, nothing read |
+| ① File | Not a PDF, password-protected, or no pages | `NOT_A_PDF` · `ENCRYPTED` · `EMPTY_DOCUMENT` | document | HTTP 422, nothing read |
+| ② Page | No text layer (a scan) | `NO_TEXT_LAYER` | page | That page is skipped; the others continue |
+| ② Page | The page throws, or cites text that isn't on it | `PAGE_PARSE_FAILED` | page | That page is skipped; the others continue |
+| ② Page | Summary / returns / credit / acceptance page | `NON_DELIVERY_SECTION` | page | Lines kept and tagged, not counted as delivered; their counts are left out of the conflict check |
+| ② Page | No table header, a repeated column, or no items under the header | `UNRECOGNISED_LAYOUT` | page | Nothing taken from that page |
+| ② Page | No Unit or Line Total column | `COLUMN_NOT_PRESENT` | page | One note per missing column; nothing is computed to fill it |
+| ② Cell | Blank, `TBC`, `N/A`; or `1.250`, `approx 20` | `MISSING_VALUE` · `AMBIGUOUS_NUMBER_FORMAT` | field | That value is left out; the rest of the line is kept |
+| ② Cell | A weight like `25kg` with no per-item or total | `AMBIGUOUS_UNIT_BASIS` | field | Kept exactly as printed, and flagged |
+| ③ Guard | A value that isn't in its source row, on its page | `VALUE_NOT_IN_SOURCE` | field | That value is dropped |
+| ③ Checks | Qty × unit price ≠ printed line total | `LINE_ARITHMETIC_MISMATCH` | line | All three printed values shown; none corrected |
+| ③ Checks | Lines don't add up to the printed total | `TOTAL_MISMATCH` | document | Only the printed total is cited; no sum or gap is shown |
+| ③ Checks | One count noun with different numbers ("14 pallets" / "16 pallets") | `CONFLICTING_VALUES` | document | Every mention listed with its source; none chosen |
 
-```mermaid
-flowchart TD
-  bytes["PDF bytes"] --> open{"Starts with %PDF-,<br/>opens, has pages?"}
-  open -- no --> rDoc["NOT_A_PDF / ENCRYPTED / EMPTY_DOCUMENT<br/>document · HTTP 422"]
-  open -- yes --> perPage["For each page, in its own try/catch"]
-  perPage -. "page throws" .-> rCrash["PAGE_PARSE_FAILED · page"]
-  perPage --> hasText{"Text layer?"}
-  hasText -- no --> rScan["NO_TEXT_LAYER · page"]
-  hasText -- yes --> rows["Rows: group text runs by y"]
-  rows --> section["Section from the subtitle"]
-  section -. "summary / returns /<br/>credit / acceptance" .-> rSection["NON_DELIVERY_SECTION · page<br/>lines kept, tagged by section"]
-  section --> header{"Table header found,<br/>with numbered items under it?"}
-  header -- no --> rLayout["UNRECOGNISED_LAYOUT · page"]
-  header -- yes --> columns["Columns from the header text positions"]
-  columns -. "no Unit / Line Total column" .-> rColumn["COLUMN_NOT_PRESENT · page"]
-  columns --> cells["Cells → strict parsers<br/>money, price basis, quantity, weight"]
-  cells -. "blank, TBC, 1.250, 25kg" .-> rField["MISSING_VALUE / AMBIGUOUS_NUMBER_FORMAT /<br/>AMBIGUOUS_UNIT_BASIS · field"]
-  cells --> notes["Notes outside the table:<br/>printed totals, '14 pallets' mentions"]
-  notes --> guard{"Provenance guard<br/>raw ⊂ sourceText ⊂ page text"}
-  guard -- fails --> rGuard["Value dropped<br/>VALUE_NOT_IN_SOURCE · field"]
-  guard -- passes --> checks["Cross-checks in integer cents<br/>nothing computed is output"]
-  checks -. "don't agree" .-> rCheck["LINE_ARITHMETIC_MISMATCH · line<br/>TOTAL_MISMATCH / CONFLICTING_VALUES · document"]
-  checks --> result["Link refusals to lines, page and document status<br/>HTTP 200 ExtractionResult"]
-  classDef refusal fill:#fef3c7,stroke:#d97706,color:#78350f
-  class rDoc,rCrash,rScan,rSection,rLayout,rColumn,rField,rGuard,rCheck refusal
-```
-
-### UI states (Part B)
-
-There is one discriminated union for the page state. Each outcome has its own message, and none of them says "something went wrong".
+### The page (Part B)
 
 ```mermaid
+%%{init: {"theme": "neutral"}}%%
 stateDiagram-v2
-  [*] --> idle
-  idle --> uploading: choose a PDF, press Read
-  uploading --> result: 200, including when everything was refused
-  uploading --> rejected: 422 refusal, shown with what to do
-  uploading --> tooLarge: over 4 MB, checked before upload or by the platform
-  uploading --> badRequest: 400 no file
-  uploading --> serverError: 500, honest message and reference
-  uploading --> networkError: couldn't reach the server
-  uploading --> invalidResponse: not JSON, or fails the shared schema
-  note right of result
-    Banner, page chips, needs your attention,
-    then page by page with each problem next to its row
-  end note
+  direction LR
+  [*] --> Idle
+  Idle --> Uploading: Read document
+  Uploading --> Finished: response, or no response
+  Finished --> Uploading: Read another file
 ```
+
+The page state is one discriminated union. `Finished` holds exactly one of these outcomes, and each has its own message:
+
+| Outcome | When | What the user sees |
+|---|---|---|
+| `result` | 200, **including when everything was refused** | Summary banner, page chips, "Needs your attention", then page by page with each problem next to its row |
+| `rejected` | 422 | The refusal's own message, what to do, and a reference |
+| `tooLarge` | Over 4 MB (checked before upload), or a 413 from the platform | The 4 MB limit in plain words |
+| `badRequest` | 400 | "We didn't receive a file…" |
+| `serverError` | 500 | An honest message and the reference to quote |
+| `networkError` | The request never reached the server | "Couldn't reach the server. Check your connection and try again." |
+| `invalidResponse` | Not JSON, or fails the shared schema | "The server sent a response we couldn't understand", with the reference if there is one |
+
+None of them says "something went wrong".
 
 **Extraction is deterministic.** It parses the PDF text layer by coordinates, with no LLM and no OCR (D1, D2). Column positions come from the header text; none are hard-coded.
 

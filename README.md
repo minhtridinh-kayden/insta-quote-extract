@@ -101,11 +101,76 @@ What that means in practice:
 
 ## How it works
 
+### System overview
+
+```mermaid
+flowchart LR
+  user(["Tradie"]) --> form
+  subgraph browser["Browser · src/app/page.tsx"]
+    form["UploadForm"] --> submit["submitPdf<br/>size check before upload"]
+    validate["Validate the response<br/>with the shared zod schema"] --> screen["Result screen,<br/>or a notice with the real reason"]
+  end
+  subgraph vercel["Vercel · Node runtime"]
+    route["POST /api/extract<br/>route.ts → handleExtract"] <--> pipeline["extractDocument<br/>src/lib/extraction"]
+    route -.-> logs[("One JSON log line<br/>per requestId")]
+  end
+  submit -- "multipart PDF" --> route
+  route -- "200 ExtractionResult<br/>413 / 422 refusal<br/>400 / 500 error + requestId" --> validate
+  schema[["src/lib/schema<br/>shared zod contract"]] -.-> route
+  schema -.-> validate
+  github["GitHub main"] -- "auto-deploy on push" --> vercel
 ```
-bytes → pdf/ (per-page try/catch) → rows (group text runs by y) → section (from the subtitle)
-      → table/ (header text → column x-ranges → cells → strict parsers in numbers/)
-      → notes/ (printed totals, "<n> pallets" mentions, cost note)
-      → pipeline/ (provenance guard on every value → validate/ cross-checks in integer cents → link → status)
+
+### Extraction pipeline, and where each refusal comes from
+
+Amber boxes are refusals. Each one is raised at the smallest scope that fits: document > page > line > field. Everything else on the page, or in the line, is kept.
+
+```mermaid
+flowchart TD
+  bytes["PDF bytes"] --> open{"Starts with %PDF-,<br/>opens, has pages?"}
+  open -- no --> rDoc["NOT_A_PDF / ENCRYPTED / EMPTY_DOCUMENT<br/>document · HTTP 422"]
+  open -- yes --> perPage["For each page, in its own try/catch"]
+  perPage -. "page throws" .-> rCrash["PAGE_PARSE_FAILED · page"]
+  perPage --> hasText{"Text layer?"}
+  hasText -- no --> rScan["NO_TEXT_LAYER · page"]
+  hasText -- yes --> rows["Rows: group text runs by y"]
+  rows --> section["Section from the subtitle"]
+  section -. "summary / returns /<br/>credit / acceptance" .-> rSection["NON_DELIVERY_SECTION · page<br/>lines kept, tagged by section"]
+  section --> header{"Table header found,<br/>with numbered items under it?"}
+  header -- no --> rLayout["UNRECOGNISED_LAYOUT · page"]
+  header -- yes --> columns["Columns from the header text positions"]
+  columns -. "no Unit / Line Total column" .-> rColumn["COLUMN_NOT_PRESENT · page"]
+  columns --> cells["Cells → strict parsers<br/>money, price basis, quantity, weight"]
+  cells -. "blank, TBC, 1.250, 25kg" .-> rField["MISSING_VALUE / AMBIGUOUS_NUMBER_FORMAT /<br/>AMBIGUOUS_UNIT_BASIS · field"]
+  cells --> notes["Notes outside the table:<br/>printed totals, '14 pallets' mentions"]
+  notes --> guard{"Provenance guard<br/>raw ⊂ sourceText ⊂ page text"}
+  guard -- fails --> rGuard["Value dropped<br/>VALUE_NOT_IN_SOURCE · field"]
+  guard -- passes --> checks["Cross-checks in integer cents<br/>nothing computed is output"]
+  checks -. "don't agree" .-> rCheck["LINE_ARITHMETIC_MISMATCH · line<br/>TOTAL_MISMATCH / CONFLICTING_VALUES · document"]
+  checks --> result["Link refusals to lines, page and document status<br/>HTTP 200 ExtractionResult"]
+  classDef refusal fill:#fef3c7,stroke:#d97706,color:#78350f
+  class rDoc,rCrash,rScan,rSection,rLayout,rColumn,rField,rGuard,rCheck refusal
+```
+
+### UI states (Part B)
+
+There is one discriminated union for the page state. Each outcome has its own message, and none of them says "something went wrong".
+
+```mermaid
+stateDiagram-v2
+  [*] --> idle
+  idle --> uploading: choose a PDF, press Read
+  uploading --> result: 200, including when everything was refused
+  uploading --> rejected: 422 refusal, shown with what to do
+  uploading --> tooLarge: over 4 MB, checked before upload or by the platform
+  uploading --> badRequest: 400 no file
+  uploading --> serverError: 500, honest message and reference
+  uploading --> networkError: couldn't reach the server
+  uploading --> invalidResponse: not JSON, or fails the shared schema
+  note right of result
+    Banner, page chips, needs your attention,
+    then page by page with each problem next to its row
+  end note
 ```
 
 **Extraction is deterministic.** It parses the PDF text layer by coordinates, with no LLM and no OCR (D1, D2). Column positions come from the header text; none are hard-coded.

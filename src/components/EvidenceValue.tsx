@@ -1,40 +1,21 @@
 "use client";
 
-import { useId, useState, type KeyboardEvent } from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Evidenced } from "@/lib/schema";
 import { SourceLine } from "./SourceLine";
 
 export function EvidenceValue({ value }: { value: Evidenced<unknown> }) {
-  const [open, setOpen] = useState(false);
-  const panelId = useId();
-
-  const closeOnEscape = (event: KeyboardEvent) => {
-    if (event.key === "Escape") setOpen(false);
-  };
-
   return (
-    <span className="inline-block" onKeyDown={closeOnEscape}>
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-controls={panelId}
-        onClick={() => setOpen((isOpen) => !isOpen)}
-        className="rounded px-1 text-left underline decoration-dotted underline-offset-4 hover:bg-amber-100 focus:outline-2 focus:outline-amber-500"
-      >
+    <Popover>
+      <PopoverTrigger className="rounded-sm px-1 text-left underline decoration-dotted underline-offset-4 hover:bg-warning/15 focus-visible:outline-2 focus-visible:outline-ring data-[state=open]:bg-warning/20">
         {value.raw}
-      </button>
-      {open && (
-        <span
-          id={panelId}
-          role="note"
-          className="mt-1 block w-64 max-w-[75vw] rounded-lg border border-stone-300 bg-white p-3 text-left shadow-sm"
-        >
-          <span className="block text-xs font-semibold uppercase tracking-wide text-stone-500">
-            Printed on page {value.evidence.page}
-          </span>
-          <SourceLine sourceText={value.evidence.sourceText} raw={value.raw} />
-        </span>
-      )}
-    </span>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-72 max-w-[85vw] space-y-1">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Printed on page {value.evidence.page}
+        </p>
+        <SourceLine sourceText={value.evidence.sourceText} raw={value.raw} />
+      </PopoverContent>
+    </Popover>
   );
 }

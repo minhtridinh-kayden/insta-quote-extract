@@ -65,6 +65,12 @@ Short entries: decision, why, cost. Append as you go. The README's "hardest deci
 - **Why:** `fetch` doesn't report when the request body has finished sending, so a `processing` state would be a guess. The single state says what is true: "Uploading and reading…".
 - **Cost:** No upload progress. `XMLHttpRequest` upload events could split the two states if large files make it worth it.
 
+## D14. shadcn/ui for Part B
+
+- **Decision:** The UI uses shadcn/ui (Radix + Tailwind v4 tokens): Alert, Card, Badge, Table, Popover, Skeleton, Button, Input, Label. There's one extra theme colour, `warning`, for "needs review", instead of ad-hoc palette classes.
+- **Why:** It matches the team's Next.js/Vercel stack. The Radix Popover renders in a portal, so the evidence panel isn't clipped by the scrolling table, and focus and Escape are handled for us. The skeleton shows the shape of the result while the file is read.
+- **Cost:** More dependencies (`radix-ui`, `lucide-react`, `class-variance-authority`, `cn`) and generated source in `src/components/ui`. Light theme only.
+
 ## Known limitations (fill in as found)
 
 - Count-noun conflict detection uses a fixed noun list (pallets, bags, boxes, rolls, bundles, crates, packs, sheets, cartons).

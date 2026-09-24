@@ -1,6 +1,11 @@
 "use client";
 
+import { FileUp } from "lucide-react";
 import { useId, useState, type FormEvent } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { MAX_UPLOAD_MB } from "@/lib/schema";
 
 type UploadFormProps = {
@@ -18,25 +23,23 @@ export function UploadForm({ busy, onSubmit }: UploadFormProps) {
   };
 
   return (
-    <form onSubmit={submit} className="space-y-3 rounded-lg border border-stone-300 bg-white p-4">
-      <label htmlFor={inputId} className="block font-medium text-stone-900">
-        Supplier document (PDF, up to {MAX_UPLOAD_MB} MB)
-      </label>
-      <input
-        id={inputId}
-        type="file"
-        accept="application/pdf,.pdf"
-        disabled={busy}
-        onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-        className="block w-full text-sm text-stone-700 file:mr-3 file:rounded file:border-0 file:bg-stone-200 file:px-3 file:py-2 file:font-medium"
-      />
-      <button
-        type="submit"
-        disabled={!file || busy}
-        className="w-full rounded bg-stone-900 px-4 py-2 font-medium text-white disabled:cursor-not-allowed disabled:bg-stone-400 sm:w-auto"
-      >
-        {busy ? "Reading…" : "Read document"}
-      </button>
-    </form>
+    <Card>
+      <CardContent>
+        <form onSubmit={submit} className="space-y-3">
+          <Label htmlFor={inputId}>Supplier document (PDF, up to {MAX_UPLOAD_MB} MB)</Label>
+          <Input
+            id={inputId}
+            type="file"
+            accept="application/pdf,.pdf"
+            disabled={busy}
+            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+          />
+          <Button type="submit" disabled={!file || busy} className="w-full sm:w-auto">
+            <FileUp aria-hidden="true" />
+            {busy ? "Reading…" : "Read document"}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

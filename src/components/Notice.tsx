@@ -1,12 +1,14 @@
+import { CircleAlert, Info, TriangleAlert } from "lucide-react";
 import type { ReactNode } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export type NoticeTone = "neutral" | "warning" | "problem";
 
-const TONE_CLASSES: Record<NoticeTone, string> = {
-  neutral: "border-stone-300 bg-white",
-  warning: "border-amber-400 bg-amber-50",
-  problem: "border-red-400 bg-red-50",
-};
+const TONES = {
+  neutral: { variant: "default", Icon: Info },
+  warning: { variant: "warning", Icon: TriangleAlert },
+  problem: { variant: "destructive", Icon: CircleAlert },
+} as const;
 
 type NoticeProps = {
   tone: NoticeTone;
@@ -15,10 +17,12 @@ type NoticeProps = {
 };
 
 export function Notice({ tone, title, children }: NoticeProps) {
+  const { variant, Icon } = TONES[tone];
   return (
-    <section role={tone === "neutral" ? "status" : "alert"} className={`rounded-lg border-l-4 p-4 ${TONE_CLASSES[tone]}`}>
-      <h2 className="font-semibold text-stone-900">{title}</h2>
-      <div className="mt-1 space-y-2 text-stone-800">{children}</div>
-    </section>
+    <Alert variant={variant} role={tone === "neutral" ? "status" : "alert"} className="p-4">
+      <Icon aria-hidden="true" />
+      <AlertTitle className="text-base font-semibold">{title}</AlertTitle>
+      <AlertDescription className="space-y-2 text-sm text-foreground">{children}</AlertDescription>
+    </Alert>
   );
 }

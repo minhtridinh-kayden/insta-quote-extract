@@ -32,7 +32,7 @@ Read these before writing code:
 - Next.js (App Router) + TypeScript (strict), deployed on Vercel. Node runtime for the API route.
 - `unpdf` (pdf.js) for text items with coordinates. `zod` for the shared schema.
 - `vitest` for unit/fixture tests; `@testing-library/react` + `jsdom` for UI tests.
-- Tailwind for styling (keep it minimal; must work on a phone screen).
+- Tailwind v4 + shadcn/ui (Radix) for styling. Use theme tokens (`bg-card`, `text-muted-foreground`, `warning`), not raw palette classes. Must work on a phone screen.
 - Upload uses a plain Route Handler (multipart). tRPC is not used because it doesn't handle file uploads well; this is noted in the README.
 
 ## Layout
@@ -54,8 +54,10 @@ src/lib/extraction/          pure TS, no Next.js imports, fully unit-testable
   pipeline/                  extractDocument: per-page try/catch, provenance guard on inputs, cross-checks, linking, status
 src/lib/api/                 HTTP layer: read upload (size/multipart), status-coded responses, request log, handleExtract
 src/app/api/extract/route.ts thin Next.js wiring: runtime nodejs, POST → handleExtract
+src/lib/client/              browser-side logic: submitPdf (validates with the shared schema), summary, attention order, highlight, page chips, line groups
 src/app/page.tsx             Part B UI (client component, explicit state machine)
-src/components/              UploadForm, ResultSummary, PageStrip, LineItemTable, AttentionList, EvidencePopover
+src/components/              UploadForm, LoadingResult, OutcomeNotice, ResultSummary, PageStrip, AttentionList, LineItemTable, EvidenceValue…
+src/components/ui/           shadcn/ui primitives (generated source; `npx shadcn@latest add <name>`)
 tests/                       *.test.ts(x); fixture tests read fixtures/expected.json
 scripts/extract-fixtures.ts  runs the pipeline on every fixture → out/<name>.json (for review)
 ```

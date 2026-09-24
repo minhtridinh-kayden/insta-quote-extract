@@ -48,3 +48,9 @@ Short entries: decision, why, cost. Append as you go. The README's "hardest deci
 - No detection of *missing* rows: if a row's layout doesn't match, it can end the table early without a refusal. A coverage check (every numeric run on the page is either used or listed) would catch this.
 - GST and currency are never stated in the fixtures. Amounts are output as printed, with no NZD or ex/incl-GST labels.
 - Only validated on one supplier's layout family (6 files).
+
+## D8. Run text is trimmed; a damaged PDF is refused as NOT_A_PDF
+
+- **Decision:** Each text run's `str` is trimmed and whitespace-only runs are dropped before rows are built. A file that starts with `%PDF-` but that pdf.js can't parse (`InvalidPDFException`) is refused as `NOT_A_PDF`, with the parser message in `technicalDetail`.
+- **Why:** ReportLab emits `" "` spacer runs between cells. Trimming keeps `raw` ⊂ `sourceText` exact, since both come from the same trimmed strings. A damaged file is a problem with the upload, not our system, so it gets a refusal (422) rather than a 500.
+- **Cost:** `raw` can differ from the PDF bytes by surrounding whitespace. The user message for a damaged PDF says "isn't a PDF file", which is slightly off; a separate `DAMAGED_PDF` code would be more precise.

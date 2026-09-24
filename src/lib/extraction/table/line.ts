@@ -1,4 +1,5 @@
 import { isExtraField, type Evidenced, type FieldPath, type LineItem, type Refusal, type Section } from "@/lib/schema";
+import { lineLabel } from "../line-label";
 import { makeRefusal } from "../refusal";
 import type { BodyRow } from "./body";
 import { FIELD_READERS, readExtra, type FieldProblem, type LineValues } from "./fields";
@@ -26,7 +27,7 @@ export function buildLine({ page, section }: LineContext, { row, cells }: BodyRo
     }
   }
 
-  const description = values.description?.raw ?? `item ${values.itemNo?.raw ?? lineNo}`;
+  const description = lineLabel(values.description, values.itemNo, lineNo);
   const refusals = problems.map(({ field, problem }) =>
     makeRefusal({
       code: problem.code,

@@ -56,7 +56,7 @@ Short entries: decision, why, cost. Append as you go. The README's "hardest deci
 ## Known limitations (fill in as found)
 
 - Count-noun conflict detection uses a fixed noun list (pallets, bags, boxes, rolls, bundles, crates, packs, sheets, cartons).
-- No detection of *missing* rows: the table ends at the first row whose Item cell isn't a plain positive integer (e.g. a wrapped description, `3a`, `1.`), and any item rows after it are not read and not refused. A coverage check (every numeric run on the page is either used or listed) would catch this.
+- No detection of *missing* rows: the table ends at the first row whose Item cell isn't a plain positive integer (e.g. a wrapped description, `3a`, `1.`), and any item rows after it are not read and not refused. The page's TOTAL_MISMATCH check would then blame the document for rows we failed to read. A coverage check (every numeric run on the page is either used or listed) would catch this.
 - Column ranges start 4pt left of each heading, which fits left-aligned tables (all fixtures). A right-aligned amount wider than its heading would fall into the column to its left.
 - A `Total` row whose amount doesn't parse as money (e.g. `$2,63,0.00`) is not read as a total and raises no refusal, so the total-vs-lines check is skipped for that page.
 - GST and currency are never stated in the fixtures. Amounts are output as printed, with no NZD or ex/incl-GST labels.

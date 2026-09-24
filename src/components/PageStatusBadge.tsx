@@ -4,7 +4,7 @@ import type { PageChip } from "@/lib/client";
 import type { PageSummary } from "@/lib/schema";
 
 const STATUS = {
-  ok: { variant: "outline", Icon: Check },
+  ok: { variant: "success", Icon: Check },
   needs_review: { variant: "warning", Icon: TriangleAlert },
   refused: { variant: "destructive", Icon: X },
 } as const satisfies Record<PageSummary["status"], unknown>;

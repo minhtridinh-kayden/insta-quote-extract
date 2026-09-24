@@ -3,7 +3,7 @@ import type { ExtractionResult } from "@/lib/schema";
 import { Notice, type NoticeTone } from "./Notice";
 
 const TONE: Record<ExtractionResult["status"], NoticeTone> = {
-  complete: "neutral",
+  complete: "success",
   needs_review: "warning",
   nothing_extracted: "warning",
 };

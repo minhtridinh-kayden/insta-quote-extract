@@ -47,3 +47,12 @@ describe("a total that doesn't add up", () => {
     expect(container.textContent).toContain("$1,612.90");
   });
 });
+
+describe("a clean document", () => {
+  it("shows a green, calm banner instead of a warning", async () => {
+    render(<ResultView result={await fixtureResult("KBS-10234.pdf")} />);
+    const banner = screen.getByText("We read 5 items from this page. Nothing needs your attention.").closest('[data-slot="alert"]')!;
+    expect(banner).toHaveAttribute("role", "status");
+    expect(banner.className).toContain("bg-success");
+  });
+});

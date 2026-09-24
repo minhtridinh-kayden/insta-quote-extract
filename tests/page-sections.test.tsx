@@ -104,3 +104,13 @@ describe("navigation between the overview and the pages", () => {
     expect(screen.getByRole("link", { name: "Go to page 1" })).toHaveAttribute("href", "#page-1");
   });
 });
+
+describe("status colours", () => {
+  it("marks OK pages green, pages to check amber, and unread pages red, each with its own word", async () => {
+    render(<PageStrip result={await fixtureResult("KBS-DR118.pdf")} />);
+    const variant = (name: string) => screen.getByRole("link", { name }).getAttribute("data-variant");
+    expect(variant("p1 · Delivery · OK")).toBe("success");
+    expect(variant("p5 · Summary · Check")).toBe("warning");
+    expect(variant("p4 · Scanned, not read")).toBe("destructive");
+  });
+});

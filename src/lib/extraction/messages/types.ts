@@ -34,7 +34,7 @@ export type MessageInputs = {
   };
   TOTAL_MISMATCH: { page: number; totalRaw: string; note?: string };
   CONFLICTING_VALUES: { countNoun: string; raws: string[] };
-  VALUE_NOT_IN_SOURCE: { page: number; field: FieldPath };
+  VALUE_NOT_IN_SOURCE: { page: number; field?: FieldPath; label?: string };
 };
 
 export type MessageBuilder<C extends RefusalCode> = (input: MessageInputs[C]) => RefusalCopy;

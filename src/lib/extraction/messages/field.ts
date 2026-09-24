@@ -23,8 +23,11 @@ export const fieldMessages: MessageBuilders<
     userMessage: `${where(input)} is ${quote(input.raw)}, but it doesn't say whether that's for each item or for the whole line. We've kept it exactly as printed.`,
     suggestedAction: `Check with the supplier if the ${fieldLabel(input.field)} matters for this job.`,
   }),
-  VALUE_NOT_IN_SOURCE: ({ page, field }) => ({
-    userMessage: `We found a ${fieldLabel(field)} ${onPage(page)} but couldn't match it back to the text on the page, so we've left it out.`,
-    suggestedAction: `Check the ${fieldLabel(field)} on the original document and enter it by hand.`,
-  }),
+  VALUE_NOT_IN_SOURCE: ({ page, field, label: what }) => {
+    const label = field ? fieldLabel(field) : (what ?? "value");
+    return {
+      userMessage: `We found a ${label} ${onPage(page)} but couldn't match it back to the text on the page, so we've left it out.`,
+      suggestedAction: `Check the ${label} on the original document and enter it by hand.`,
+    };
+  },
 };

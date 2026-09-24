@@ -48,10 +48,10 @@ src/lib/extraction/          pure TS, no Next.js imports, fully unit-testable
   table/                     layout (header → column ranges), body (item rows), cells, fields, line, missing-columns
   numbers/                   strict parsers for money / price basis / quantity / measurements; missing tokens
   section.ts                 classify page role from its subtitle (delivery, summary, returns…)
-  notes.ts                   non-table text: printed totals, "<n> <count-noun>" mentions
-  validate.ts                cross-checks: line arithmetic, total vs lines, conflicting mentions
+  notes/                     non-table rows: printed totals, "<n> <count-noun>" mentions, cost note
+  validate/                  cross-checks in integer cents re-parsed from raw: line arithmetic, total vs lines, conflicting counts
   messages/                  RefusalCode → plain-English userMessage + suggestedAction (builders grouped by scope; describeRefusal in index.ts)
-  pipeline.ts                orchestrates; try/catch per page; computes status
+  pipeline/                  extractDocument: per-page try/catch, provenance guard on inputs, cross-checks, linking, status
 src/app/api/extract/route.ts HTTP layer: size/type checks, status codes, requestId
 src/app/page.tsx             Part B UI (client component, explicit state machine)
 src/components/              UploadForm, ResultSummary, PageStrip, LineItemTable, AttentionList, EvidencePopover

@@ -53,12 +53,19 @@ Short entries: decision, why, cost. Append as you go. The README's "hardest deci
 - **Decision:** A header that names the same column twice, or a header with no numbered item rows under it, is `UNRECOGNISED_LAYOUT`. The first column extends to the page's left edge so right-aligned item numbers aren't lost.
 - **Why:** Two `Qty` columns means two printed values for one field; picking one is guessing. A header with nothing under it means the layout wasn't understood, and "0 items, no problems" would be a silent failure.
 
+## D12. Provenance is enforced where values enter, and structural bugs fail their page
+
+- **Decision:** Line fields, printed totals and count mentions are checked (`raw` ⊂ `sourceText` ⊂ page text) before any cross-check uses them; an untraceable value is dropped at field scope with `VALUE_NOT_IN_SOURCE`. Candidates and cross-check refusals are built only from checked values, so they are traceable by construction. A page whose section or page-level refusal cites text that isn't on it is treated as `PAGE_PARSE_FAILED`.
+- **Why:** Patching a finished result (removing some candidates from a conflict, relabelling a section after its lines were tagged) produced self-contradicting output. Checking inputs keeps each refusal whole, and a structural bug is contained to its page (rule 4).
+- **Cost:** Cross-checks and linking run over the whole document outside the per-page try/catch. They only read checked values and don't throw on any known input; if one did, that is a real bug and the API returns an honest 500.
+
 ## Known limitations (fill in as found)
 
 - Count-noun conflict detection uses a fixed noun list (pallets, bags, boxes, rolls, bundles, crates, packs, sheets, cartons).
 - No detection of *missing* rows: the table ends at the first row whose Item cell isn't a plain positive integer (e.g. a wrapped description, `3a`, `1.`), and any item rows after it are not read and not refused. The page's TOTAL_MISMATCH check would then blame the document for rows we failed to read. A coverage check (every numeric run on the page is either used or listed) would catch this.
 - Column ranges start 4pt left of each heading, which fits left-aligned tables (all fixtures). A right-aligned amount wider than its heading would fall into the column to its left.
 - A `Total` row whose amount doesn't parse as money (e.g. `$2,63,0.00`) is not read as a total and raises no refusal, so the total-vs-lines check is skipped for that page.
+- A printed total is checked against the lines on its own page only. A total on the last page that covers several pages would raise a false TOTAL_MISMATCH.
 - GST and currency are never stated in the fixtures. Amounts are output as printed, with no NZD or ex/incl-GST labels.
 - Only validated on one supplier's layout family (6 files).
 - Section keywords match anywhere in the subtitle, so an address like "Site 2 of 4 - Credit St" would be read as a credit page. That fails safe (lines are kept but flagged as non-delivery). The subtitle is assumed to be row 1, directly under the company name.

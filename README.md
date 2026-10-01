@@ -1,7 +1,5 @@
 # Insta Quote · PDF extraction with evidence and refusals
 
-This is my take-home for the full-stack role at Insta Quote AI. It has two parts:
-
 - **Part A** is an API, `POST /api/extract`. You send it a supplier PDF and it sends back the line items it could read. Every value comes with the page and the exact printed row it came from. Anything it refused to read is listed separately, with the reason.
 - **Part B** is a single page that uploads a PDF and shows the result, with every refusal explained in plain words a tradie would understand.
 
